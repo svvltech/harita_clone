@@ -1,6 +1,6 @@
 import * as Cesium from "cesium";
 import { viewer } from "../harita";
-import { MovementEngine } from "../movementEngine";
+import { MovementEngine } from "../movementEngineEski";
 
 // --- NESNE TAKİPÇİLERİ (ENGINES) ---
 let shipEngine: MovementEngine | null = null;
