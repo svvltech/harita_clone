@@ -75,25 +75,6 @@ export const updateEntityPosition = (id: string, lon: number, lat: number, heigh
     }
 };
 
-/**
- * Yardımcı: Gemiye göre ofset hesaplar.
- */
-const getPositionWithOffset = (offset: Cesium.Cartesian3) => {
-    return new Cesium.CallbackPositionProperty((time, result) => {
-        if (!shipEntity) return undefined;
-        const pos = shipEntity.position?.getValue(time, scratchPos);
-        const ori = shipEntity.orientation?.getValue(time, scratchOri);
-        if (!pos || !ori) return undefined;
-
-        const transform = Cesium.Matrix4.fromRotationTranslation(
-            Cesium.Matrix3.fromQuaternion(ori, scratchMat3),
-            pos,
-            scratchMat4
-        );
-        return Cesium.Matrix4.multiplyByPoint(transform, offset, result || new Cesium.Cartesian3());
-    }, false);
-};
-
 export const addAircraftCarrier = (): void => {
     if (!viewer || shipEntity) return;
 
