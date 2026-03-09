@@ -74,6 +74,8 @@ export class MovementEngine {
     // ışınlanma (jump) kontrolü için
     private outlierCount = 0;
     private readonly MAX_OUTLIERS = 3; // Kaç paket üst üste hatalı gelirse "teslim edilecek" paket sayısını belirler , üstüne düşünülmesi lazım
+    private outlierStartTime: number = 0; // İlk hatalı paketin geldiği zaman (ms)
+    private readonly OUTLIER_DURATION_LIMIT = 1.5; // Maksimum bekleme süresi (Saniye)
 
     constructor(initialLon: number, initialLat: number, initialHeight: number, initialH: number = 0, initialP: number = 0, initialR: number = 0, config?: ValidationConfig) {
         // Doğrulama ayarlarını hazırla
@@ -321,8 +323,16 @@ export class MovementEngine {
         if (alt < this.config.minAltitude || alt > this.config.maxAltitude) return false; // İrtifa Kontrolü
         if (speed > this.config.maxPhysicalSpeed) return false; // Hız Kontrolü ????
 
-        // 5. Işınlanma (Jump) Kontrolü ???
+        // 5.1 İlk Paket Kontrolü
+        if (this.lastServerTime === 0) { // ????
+            this.outlierCount = 0;
+            this.outlierStartTime = 0; // Henüz bir hata yok
+            return true;
+        }
+
+        // 5.2 Işınlanma (Jump) Kontrolü ???
         const dtPacket = (serverTimestamp - this.lastServerTime) / 1000;
+        const now = performance.now(); // ?????
 
         // Sadece makul zaman aralıklarında (örn. 10ms'den büyük) bu kontrolü yap
         // Çok küçük dt değerlerinde (division by zero risk veya jitter) kontrolü atlamak daha iyidir.
@@ -333,28 +343,36 @@ export class MovementEngine {
 
             // Belirlediğin hız limitinden (maxJumpDistancePerSecond) büyükse
             if (calculatedSpeed > this.config.maxJumpDistancePerSecond) {
-                this.outlierCount++;
-                
-                console.warn(`[MovementEngine] Sıçrama Engellendi! Hız: ${calculatedSpeed.toFixed(1)} m/s, Sayaç: ${this.outlierCount}/3`);
 
-                // Eğer üst üste 3 paket hatalı geldiyse (MAX_OUTLIERS)
-                if (this.outlierCount >= this.MAX_OUTLIERS) {
-                    console.log("[MovementEngine] Sürekli aykırı değer: Yeni konuma zorunlu senkronizasyon (forceSync) yapılıyor.");
-                    this.forceSync(lon, lat, alt, h, p, r); 
-                    return true; // Paket artık "geçerli" (zorunlu kabul edildi)
-                } 
-                
-                // Henüz 3 pakete ulaşmadıysak bu paketi çöpe at
+                // EĞER BU SERİNİN İLK HATALI PAKETİYSE: Sayacı ve zamanı ŞİMDİ başlat
+                if (this.outlierCount === 0) {
+                    this.outlierStartTime = now;
+                }
+
+                this.outlierCount++;
+                const outlierDuration = (now - this.outlierStartTime) / 1000;
+
+                console.warn(`[MovementEngine] Sıçrama Algılandı! Süre: ${outlierDuration.toFixed(1)}s, Paket: ${this.outlierCount}`);
+
+                // Eğer süre limiti (1.5s) aşıldıysa, bu bir sıçrama değil "yeni konum"dur.
+                if (outlierDuration >= this.OUTLIER_DURATION_LIMIT) {
+                    console.log("[MovementEngine] Outlier limit aşıldı, forceSync yapılıyor.");
+                    this.forceSync(lon, lat, alt, h, p, r);
+                    this.outlierCount = 0;
+                    this.outlierStartTime = 0;
+                    // Not: forceSync içinde lastRealPos güncellendiği için bu paketi "geçerli" sayıp kabul ediyoruz.
+                    return true;
+                }
+
                 return false; 
             }
         }
 
-        // Eğer paket normalse (sıçrama yoksa) sayacı sıfırla
+        // Her şey normalse hata takibini sıfırla
         this.outlierCount = 0;
-
+        this.outlierStartTime = 0;
         return true;
     }
-    
 
     /**
      * Uçağı anında yeni bir konuma ve yöne ışınlar.
