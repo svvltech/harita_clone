@@ -546,3 +546,4 @@ C:\Users\PC_5508\Desktop\paralel_harita\Harita_Clone_Deneme\CesiumWpfApp\obj\Deb
 C:\Users\PC_5508\Desktop\paralel_harita\Harita_Clone_Deneme\CesiumWpfApp\obj\Debug\net8.0-windows\win-x64\CesiumWpfApp.pdb
 C:\Users\PC_5508\Desktop\paralel_harita\Harita_Clone_Deneme\CesiumWpfApp\obj\Debug\net8.0-windows\win-x64\CesiumWpfApp.genruntimeconfig.cache
 C:\Users\PC_5508\Desktop\paralel_harita\Harita_Clone_Deneme\CesiumWpfApp\obj\Debug\net8.0-windows\win-x64\ref\CesiumWpfApp.dll
+C:\Users\PC_5508\Desktop\paralel_harita\Harita_Clone_Deneme\CesiumWpfApp\obj\Debug\net8.0-windows\win-x64\CesiumWpfApp.sourcelink.json

@@ -283,7 +283,7 @@ namespace CesiumWpfApp
             settings.CefCommandLineArgs.Add("disable-renderer-backgrounding");
             settings.CefCommandLineArgs.Add("intensive-wake-up-throttling-policy", "0");
             settings.CefCommandLineArgs.Add("disable-background-networking");
-            settings.CefCommandLineArgs.Add("disable-features=CalculateNativeWinOcclusion");
+            settings.CefCommandLineArgs.Add("disable-features", "CalculateNativeWinOcclusion,IntensiveWakeUpThrottling,ThrottleDisplayNoneAndVisibilityHiddenFrame");
 
             // Bellek ayarları
             settings.CefCommandLineArgs.Add("js-flags", "--max-old-space-size=256");

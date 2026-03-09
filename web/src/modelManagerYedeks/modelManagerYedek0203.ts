@@ -1,3 +1,4 @@
+/*
 import * as Cesium from "cesium";
 import { viewer } from "../harita";
 import { MovementEngine } from "../movementEngineEski";
@@ -15,10 +16,9 @@ const scratchOri = new Cesium.Quaternion();
 const scratchMat3 = new Cesium.Matrix3();
 const scratchMat4 = new Cesium.Matrix4();
 
-/**
- * SignalR'dan gelen tüm güncellemeleri yöneten ana fonksiyon.
- * vx/vy/vz: ENU hız vektörü (m/s), heading/pitch/roll: derece
- */
+
+// SignalR'dan gelen tüm güncellemeleri yöneten ana fonksiyon.
+// vx/vy/vz: ENU hız vektörü (m/s), heading/pitch/roll: derece
 export const updateEntityPosition = (id: string, lon: number, lat: number, height: number,
     vx: number, vy: number, vz: number, heading: number, pitch: number, roll: number) => {
     if (id === "SHIP_01") {
@@ -47,9 +47,8 @@ export const updateEntityPosition = (id: string, lon: number, lat: number, heigh
     }
 };
 
-/**
- * Yardımcı: Gemiye göre ofset hesaplar.
- */
+
+// Yardımcı: Gemiye göre ofset hesaplar.
 const getPositionWithOffset = (offset: Cesium.Cartesian3) => {
     return new Cesium.CallbackPositionProperty((time, result) => {
         if (!shipEntity) return undefined;
@@ -212,3 +211,5 @@ const drawFlightDeck = (parent: Cesium.Entity) => {
         });
     });
 };
+
+*/
