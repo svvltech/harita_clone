@@ -5,11 +5,20 @@ import * as Cesium from "cesium";
  * mvmntgmn0203 mimarisi (Quaternion Slerp, exponential smoothing, scratchpad, server time sync)
  * + movementEngine'den heading+turnRate ile eğrisel pozisyon tahmini
  */
+
+export interface ValidationConfig {
+    maxPhysicalSpeed?: number;         // m/s (Örn: 500)
+    minAltitude?: number;              // m
+    maxAltitude?: number;              // m
+    maxJumpDistancePerSecond?: number; // m/s (Anlık sıçrama sınırı)
+}
+
 export class MovementEngine {
     // --- STATE DATA (Sunucudan Gelen Kesin Veriler) ---
     private lastRealPos = new Cesium.Cartesian3();
     private targetQuat = new Cesium.Quaternion();   // Gidilmesi gereken kesin yönelim
     public rotationOffset: number = 0; // Model yön düzeltmesi (radyan) — bazı modeller yanlış yöne bakar
+    private config: Required<ValidationConfig>;
 
     // --- EĞRİSEL TAHMİN VERİLERİ (heading + turnRate) ---
     private heading: number = 0;     // Son gelen heading (radyan)
@@ -62,7 +71,19 @@ export class MovementEngine {
     private static readonly _sTrackEnu = new Cesium.Cartesian3();  // Track ENU dönüşümü için
     private static readonly _sNewPos = new Cesium.Cartesian3();    // onPacketReceived için ayrı konum scratchpad
 
-    constructor(initialLon: number, initialLat: number, initialHeight: number, initialH: number = 0, initialP: number = 0, initialR: number = 0) {
+    // ışınlanma (jump) kontrolü için
+    private outlierCount = 0;
+    private readonly MAX_OUTLIERS = 3; // Kaç paket üst üste hatalı gelirse "teslim edilecek" paket sayısını belirler , üstüne düşünülmesi lazım
+
+    constructor(initialLon: number, initialLat: number, initialHeight: number, initialH: number = 0, initialP: number = 0, initialR: number = 0, config?: ValidationConfig) {
+        // Doğrulama ayarlarını hazırla
+        this.config = {
+            maxPhysicalSpeed: config?.maxPhysicalSpeed ?? 600,
+            minAltitude: config?.minAltitude ?? -100,
+            maxAltitude: config?.maxAltitude ?? 25000,
+            maxJumpDistancePerSecond: config?.maxJumpDistancePerSecond ?? 1000
+        };
+
         // Verilen derece cinsinden coğrafi konumu Cesium'un kullandığı ECEF koordinatlarına çevirir
         Cesium.Cartesian3.fromDegrees(initialLon, initialLat, initialHeight, Cesium.Ellipsoid.WGS84, this.currentVisualPos);
         Cesium.Cartesian3.clone(this.currentVisualPos, this.lastRealPos);
@@ -100,6 +121,11 @@ export class MovementEngine {
      * @param h, p, r : Heading, Pitch, Roll (Radyan cinsinden)
      */
     public onPacketReceived(lon: number, lat: number, alt: number, speed: number, h: number, p: number, r: number, serverTimestamp: number) {
+        // Gelen veriyi bekçi metodundan geçir
+        if (!this.isValidPacket(lon, lat, alt, speed,h,p,r, serverTimestamp)) {
+            return; // Geçersiz paket, işleme devam etme
+        }
+
         const localNow = Date.now();
         const previousServerTime = this.lastServerTime;
 
@@ -275,5 +301,105 @@ export class MovementEngine {
 
         return Cesium.Quaternion.clone(this.currentVisualQuat, result);
     }
+
+    /**
+     * Veri doğrulama bekçisi.
+     * Gelen paketin fiziksel kurallara uyup uymadığını denetler, 
+     * sıçrama durumunda outlier (aykırı değer) mantığını işletir.
+     */
+    private isValidPacket(lon: number, lat: number, alt: number, speed: number, h: number, p: number, r: number, serverTimestamp: number): boolean {
+        // 1. Zaman Kontrolü (Gecikmiş veya mükerrer veri tespiti)
+        if (serverTimestamp <= this.lastServerTime) return false;
+
+        // 2. Sayısal Güvenlik (NaN/Sonsuz veri tespiti)
+        if (![lon, lat, alt, speed, h, p, r].every(Number.isFinite)) return false;
+
+        // 3. Sabit Coğrafi Sınırlar (WGS84)
+        if (lat < -90 || lat > 90 || lon < -180 || lon > 180) return false;
+
+        // 4. Yapılandırılmış Fiziksel Limitler (Config üzerinden)
+        if (alt < this.config.minAltitude || alt > this.config.maxAltitude) return false; // İrtifa Kontrolü
+        if (speed > this.config.maxPhysicalSpeed) return false; // Hız Kontrolü ????
+
+        // 5. Işınlanma (Jump) Kontrolü ???
+        const dtPacket = (serverTimestamp - this.lastServerTime) / 1000;
+
+        // Sadece makul zaman aralıklarında (örn. 10ms'den büyük) bu kontrolü yap
+        // Çok küçük dt değerlerinde (division by zero risk veya jitter) kontrolü atlamak daha iyidir.
+        if (dtPacket > 0.01 && this.lastServerTime > 0) {
+            const newPos = Cesium.Cartesian3.fromDegrees(lon, lat, alt, Cesium.Ellipsoid.WGS84, MovementEngine._sNewPos);
+            const jumpDist = Cesium.Cartesian3.distance(this.lastRealPos, newPos);
+            const calculatedSpeed = jumpDist / dtPacket;
+
+            // Belirlediğin hız limitinden (maxJumpDistancePerSecond) büyükse
+            if (calculatedSpeed > this.config.maxJumpDistancePerSecond) {
+                this.outlierCount++;
+                
+                console.warn(`[MovementEngine] Sıçrama Engellendi! Hız: ${calculatedSpeed.toFixed(1)} m/s, Sayaç: ${this.outlierCount}/3`);
+
+                // Eğer üst üste 3 paket hatalı geldiyse (MAX_OUTLIERS)
+                if (this.outlierCount >= this.MAX_OUTLIERS) {
+                    console.log("[MovementEngine] Sürekli aykırı değer: Yeni konuma zorunlu senkronizasyon (forceSync) yapılıyor.");
+                    this.forceSync(lon, lat, alt, h, p, r); 
+                    return true; // Paket artık "geçerli" (zorunlu kabul edildi)
+                } 
+                
+                // Henüz 3 pakete ulaşmadıysak bu paketi çöpe at
+                return false; 
+            }
+        }
+
+        // Eğer paket normalse (sıçrama yoksa) sayacı sıfırla
+        this.outlierCount = 0;
+
+        return true;
+    }
     
+
+    /**
+     * Uçağı anında yeni bir konuma ve yöne ışınlar.
+     * Yumuşatma (smoothing) ve tahmini (prediction) devre dışı bırakır.
+     */
+    private forceSync(lon: number, lat: number, alt: number, h: number, p: number, r: number) {
+        // 1. Kesin konumu güncelle (lastRealPos doğrudan güncellenir)
+        Cesium.Cartesian3.fromDegrees(lon, lat, alt, Cesium.Ellipsoid.WGS84, this.lastRealPos);
+
+        // 2. Kesin yönelimi (Quaternion) hesapla ve targetQuat'a yaz
+        const newQuat = this.calculateQuaternion(this.lastRealPos, h, p, r);
+        Cesium.Quaternion.clone(newQuat, this.targetQuat);
+
+        // 3. GÖRSEL DURUMU ANINDA EŞİTLE
+        // Bu iki satır uçağın "kayarak" değil, "şak" diye ışınlanmasını sağlar
+        Cesium.Cartesian3.clone(this.lastRealPos, this.currentVisualPos);
+        Cesium.Quaternion.clone(this.targetQuat, this.currentVisualQuat);
+
+        // 4. TAHMİN MOTORUNU SIFIRLA
+        // packetCount'u 0 yapmak, getLatestPosition içindeki 'if (packetCount >= 2)' 
+        // kontrolü sayesinde yeni paketler gelene kadar hatalı tahmin yapılmasını engeller.
+        this.packetCount = 0;
+        this.outlierCount = 0;
+
+        console.log(`[MovementEngine] Işınlanma tamamlandı: ${lon.toFixed(5)}, ${lat.toFixed(5)}`);
+    }
+
+    /**
+     * Belirli bir konum ve HPR açısı için Cesium Quaternion üretir.
+     * Scratchpad kullanarak bellek yönetimini optimize eder.
+     */
+    private calculateQuaternion(position: Cesium.Cartesian3, h: number, p: number, r: number): Cesium.Quaternion {
+        const hpr = MovementEngine._sHpr;
+        hpr.heading = h + this.rotationOffset;
+        hpr.pitch = p;
+        hpr.roll = r;
+
+        // Cesium'un yerel ENU (East-North-Up) çerçevesinden dünya çerçevesine dönüşüm
+        return Cesium.Transforms.headingPitchRollQuaternion(
+            position,
+            hpr,
+            Cesium.Ellipsoid.WGS84,
+            Cesium.Transforms.eastNorthUpToFixedFrame,
+            MovementEngine._sNewQuat // Mevcut scratchpad'i kullanıyoruz
+        );
+    }
+
 }

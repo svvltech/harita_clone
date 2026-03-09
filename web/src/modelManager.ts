@@ -1,6 +1,21 @@
 import * as Cesium from "cesium";
 import { viewer } from "./harita";
-import { MovementEngine } from "./movementEngine";
+import { MovementEngine, ValidationConfig } from "./movementEngine";
+
+// --- VALIDATION LIMITS ---
+const SHIP_LIMITS: ValidationConfig = {
+    maxPhysicalSpeed: 40,
+    maxAltitude: 300,
+    minAltitude: -10,
+    maxJumpDistancePerSecond: 60
+};
+
+const PLANE_LIMITS: ValidationConfig = {
+    maxPhysicalSpeed: 600,
+    maxAltitude: 25000,
+    minAltitude: -100,
+    maxJumpDistancePerSecond: 1000
+};
 
 // --- NESNE TAKİPÇİLERİ (ENGINES) ---
 let shipEngine: MovementEngine | null = null;
@@ -43,7 +58,8 @@ export const updateEntityPosition = (id: string, lon: number, lat: number, heigh
     speed: number, h: number, p: number, r: number, timestamp: number) => {
     if (id === "SHIP_01") {
         if (!shipEngine) {
-            shipEngine = new MovementEngine(lon, lat, height);
+            // shipEngine = new MovementEngine(lon, lat, height);
+            shipEngine = new MovementEngine(lon, lat, height, 0, 0, 0, SHIP_LIMITS);
             shipEngine.setOrientationOffset(Math.PI); // Gemi kıç tarafıyla (ters : Math.PI/2 iken ters gider) ilerlediği için 180 derece (PI) ofset ekledik ,
             addAircraftCarrier();
         }
@@ -51,7 +67,8 @@ export const updateEntityPosition = (id: string, lon: number, lat: number, heigh
     } 
     else if (id === "PLANE_01") {
         if (!planeEngine) {
-            planeEngine = new MovementEngine(lon, lat, height);
+            // planeEngine = new MovementEngine(lon, lat, height);
+            planeEngine = new MovementEngine(lon, lat, height, 0, 0, 0, PLANE_LIMITS);
             planeEngine.setOrientationOffset(-Math.PI / 2); // Uçak burnu 90 derece sapmalı, düzeltelim
             addLandingPlane();
         }
@@ -68,7 +85,8 @@ export const updateEntityPosition = (id: string, lon: number, lat: number, heigh
     }
     else if(id === "DECK_01"){
         if (!deckEngine) {
-            deckEngine = new MovementEngine(lon, lat, height);
+            // deckEngine = new MovementEngine(lon, lat, height);
+            deckEngine = new MovementEngine(lon, lat, height, 0, 0, 0, SHIP_LIMITS);
             createFlightDeckGroup();
         }
         deckEngine.onPacketReceived(lon, lat, height, speed, h, p, r, timestamp);
