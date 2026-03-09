@@ -1,0 +1,20 @@
+# Visual Studio Build Çıktıları
+[Bb]in/
+[Ob]j/
+.vs/
+
+# CefSharp & NuGet Paketleri
+packages/
+*.user
+*.userosscache
+*.sln.docstates
+
+# CesiumJS & Node.js Bağımlılıkları (Eğer web kısmı alt klasördeyse)
+node_modules/
+dist/
+Build/
+
+# Büyük Dosyalar ve Geçici Dosyalar
+*.log
+*.tmp
+libcef.dll

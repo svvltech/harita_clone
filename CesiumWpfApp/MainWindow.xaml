@@ -1,0 +1,12 @@
+<Window x:Class="CesiumWpfApp.MainWindow"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:cef="clr-namespace:CefSharp.Wpf;assembly=CefSharp.Wpf"
+        Title="Cesium 3D Harita" Height="720" Width="1280"
+        WindowState="Maximized"
+        Loaded="Window_Loaded"
+        Closing="Window_Closing">
+    <Grid>
+        <cef:ChromiumWebBrowser x:Name="browser" />
+    </Grid>
+</Window>

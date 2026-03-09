@@ -1,0 +1,473 @@
+{
+  "runtimeTarget": {
+    "name": ".NETCoreApp,Version=v8.0",
+    "signature": ""
+  },
+  "compilationOptions": {},
+  "targets": {
+    ".NETCoreApp,Version=v8.0": {
+      "CefSharp.Common.NETCore/126.2.70": {
+        "dependencies": {
+          "chromiumembeddedframework.runtime": "126.2.7"
+        },
+        "runtimeTargets": {
+          "runtimes/win-arm64/lib/netcoreapp3.1/CefSharp.Core.Runtime.dll": {
+            "rid": "win-arm64",
+            "assetType": "runtime",
+            "assemblyVersion": "126.2.70.0",
+            "fileVersion": "126.2.70.0"
+          },
+          "runtimes/win-arm64/lib/netcoreapp3.1/CefSharp.Core.dll": {
+            "rid": "win-arm64",
+            "assetType": "runtime",
+            "assemblyVersion": "126.2.70.0",
+            "fileVersion": "126.2.70.0"
+          },
+          "runtimes/win-arm64/lib/netcoreapp3.1/CefSharp.dll": {
+            "rid": "win-arm64",
+            "assetType": "runtime",
+            "assemblyVersion": "126.2.70.0",
+            "fileVersion": "126.2.70.0"
+          },
+          "runtimes/win-arm64/lib/netcoreapp3.1/Ijwhost.dll": {
+            "rid": "win-arm64",
+            "assetType": "runtime",
+            "fileVersion": "3.100.3222.56520"
+          },
+          "runtimes/win-x64/lib/netcoreapp3.1/CefSharp.Core.Runtime.dll": {
+            "rid": "win-x64",
+            "assetType": "runtime",
+            "assemblyVersion": "126.2.70.0",
+            "fileVersion": "126.2.70.0"
+          },
+          "runtimes/win-x64/lib/netcoreapp3.1/CefSharp.Core.dll": {
+            "rid": "win-x64",
+            "assetType": "runtime",
+            "assemblyVersion": "126.2.70.0",
+            "fileVersion": "126.2.70.0"
+          },
+          "runtimes/win-x64/lib/netcoreapp3.1/CefSharp.dll": {
+            "rid": "win-x64",
+            "assetType": "runtime",
+            "assemblyVersion": "126.2.70.0",
+            "fileVersion": "126.2.70.0"
+          },
+          "runtimes/win-x64/lib/netcoreapp3.1/Ijwhost.dll": {
+            "rid": "win-x64",
+            "assetType": "runtime",
+            "fileVersion": "3.100.3222.56520"
+          },
+          "runtimes/win-x86/lib/netcoreapp3.1/CefSharp.Core.Runtime.dll": {
+            "rid": "win-x86",
+            "assetType": "runtime",
+            "assemblyVersion": "126.2.70.0",
+            "fileVersion": "126.2.70.0"
+          },
+          "runtimes/win-x86/lib/netcoreapp3.1/CefSharp.Core.dll": {
+            "rid": "win-x86",
+            "assetType": "runtime",
+            "assemblyVersion": "126.2.70.0",
+            "fileVersion": "126.2.70.0"
+          },
+          "runtimes/win-x86/lib/netcoreapp3.1/CefSharp.dll": {
+            "rid": "win-x86",
+            "assetType": "runtime",
+            "assemblyVersion": "126.2.70.0",
+            "fileVersion": "126.2.70.0"
+          },
+          "runtimes/win-x86/lib/netcoreapp3.1/Ijwhost.dll": {
+            "rid": "win-x86",
+            "assetType": "runtime",
+            "fileVersion": "3.100.3222.56520"
+          },
+          "runtimes/win-arm64/native/CefSharp.BrowserSubprocess.Core.dll": {
+            "rid": "win-arm64",
+            "assetType": "native",
+            "assemblyVersion": "126.2.70.0",
+            "fileVersion": "126.2.70.0"
+          },
+          "runtimes/win-arm64/native/CefSharp.BrowserSubprocess.dll": {
+            "rid": "win-arm64",
+            "assetType": "native",
+            "assemblyVersion": "126.2.70.0",
+            "fileVersion": "126.2.70.0"
+          },
+          "runtimes/win-arm64/native/CefSharp.BrowserSubprocess.exe": {
+            "rid": "win-arm64",
+            "assetType": "native",
+            "fileVersion": "126.2.70.0"
+          },
+          "runtimes/win-arm64/native/CefSharp.BrowserSubprocess.runtimeconfig.json": {
+            "rid": "win-arm64",
+            "assetType": "native",
+            "fileVersion": "0.0.0.0"
+          },
+          "runtimes/win-x64/native/CefSharp.BrowserSubprocess.Core.dll": {
+            "rid": "win-x64",
+            "assetType": "native",
+            "assemblyVersion": "126.2.70.0",
+            "fileVersion": "126.2.70.0"
+          },
+          "runtimes/win-x64/native/CefSharp.BrowserSubprocess.dll": {
+            "rid": "win-x64",
+            "assetType": "native",
+            "assemblyVersion": "126.2.70.0",
+            "fileVersion": "126.2.70.0"
+          },
+          "runtimes/win-x64/native/CefSharp.BrowserSubprocess.exe": {
+            "rid": "win-x64",
+            "assetType": "native",
+            "fileVersion": "126.2.70.0"
+          },
+          "runtimes/win-x64/native/CefSharp.BrowserSubprocess.runtimeconfig.json": {
+            "rid": "win-x64",
+            "assetType": "native",
+            "fileVersion": "0.0.0.0"
+          },
+          "runtimes/win-x86/native/CefSharp.BrowserSubprocess.Core.dll": {
+            "rid": "win-x86",
+            "assetType": "native",
+            "assemblyVersion": "126.2.70.0",
+            "fileVersion": "126.2.70.0"
+          },
+          "runtimes/win-x86/native/CefSharp.BrowserSubprocess.dll": {
+            "rid": "win-x86",
+            "assetType": "native",
+            "assemblyVersion": "126.2.70.0",
+            "fileVersion": "126.2.70.0"
+          },
+          "runtimes/win-x86/native/CefSharp.BrowserSubprocess.exe": {
+            "rid": "win-x86",
+            "assetType": "native",
+            "fileVersion": "126.2.70.0"
+          },
+          "runtimes/win-x86/native/CefSharp.BrowserSubprocess.runtimeconfig.json": {
+            "rid": "win-x86",
+            "assetType": "native",
+            "fileVersion": "0.0.0.0"
+          }
+        }
+      },
+      "CefSharp.Wpf.NETCore/126.2.70": {
+        "dependencies": {
+          "CefSharp.Common.NETCore": "126.2.70"
+        },
+        "runtime": {
+          "lib/netcoreapp3.1/CefSharp.Wpf.dll": {
+            "assemblyVersion": "126.2.70.0",
+            "fileVersion": "126.2.70.0"
+          }
+        }
+      },
+      "chromiumembeddedframework.runtime/126.2.7": {},
+      "Microsoft.AspNetCore.Connections.Abstractions/8.0.0": {
+        "dependencies": {
+          "Microsoft.Extensions.Features": "8.0.0",
+          "System.IO.Pipelines": "8.0.0"
+        },
+        "runtime": {
+          "lib/net8.0/Microsoft.AspNetCore.Connections.Abstractions.dll": {
+            "assemblyVersion": "8.0.0.0",
+            "fileVersion": "8.0.23.53112"
+          }
+        }
+      },
+      "Microsoft.AspNetCore.Http.Connections.Client/8.0.0": {
+        "dependencies": {
+          "Microsoft.AspNetCore.Http.Connections.Common": "8.0.0",
+          "Microsoft.Extensions.Logging.Abstractions": "8.0.0",
+          "Microsoft.Extensions.Options": "8.0.0"
+        },
+        "runtime": {
+          "lib/net8.0/Microsoft.AspNetCore.Http.Connections.Client.dll": {
+            "assemblyVersion": "8.0.0.0",
+            "fileVersion": "8.0.23.53112"
+          }
+        }
+      },
+      "Microsoft.AspNetCore.Http.Connections.Common/8.0.0": {
+        "dependencies": {
+          "Microsoft.AspNetCore.Connections.Abstractions": "8.0.0"
+        },
+        "runtime": {
+          "lib/net8.0/Microsoft.AspNetCore.Http.Connections.Common.dll": {
+            "assemblyVersion": "8.0.0.0",
+            "fileVersion": "8.0.23.53112"
+          }
+        }
+      },
+      "Microsoft.AspNetCore.SignalR.Client/8.0.0": {
+        "dependencies": {
+          "Microsoft.AspNetCore.Http.Connections.Client": "8.0.0",
+          "Microsoft.AspNetCore.SignalR.Client.Core": "8.0.0"
+        },
+        "runtime": {
+          "lib/net8.0/Microsoft.AspNetCore.SignalR.Client.dll": {
+            "assemblyVersion": "8.0.0.0",
+            "fileVersion": "8.0.23.53112"
+          }
+        }
+      },
+      "Microsoft.AspNetCore.SignalR.Client.Core/8.0.0": {
+        "dependencies": {
+          "Microsoft.AspNetCore.SignalR.Common": "8.0.0",
+          "Microsoft.AspNetCore.SignalR.Protocols.Json": "8.0.0",
+          "Microsoft.Extensions.DependencyInjection": "8.0.0",
+          "Microsoft.Extensions.Logging": "8.0.0",
+          "System.Threading.Channels": "8.0.0"
+        },
+        "runtime": {
+          "lib/net8.0/Microsoft.AspNetCore.SignalR.Client.Core.dll": {
+            "assemblyVersion": "8.0.0.0",
+            "fileVersion": "8.0.23.53112"
+          }
+        }
+      },
+      "Microsoft.AspNetCore.SignalR.Common/8.0.0": {
+        "dependencies": {
+          "Microsoft.AspNetCore.Connections.Abstractions": "8.0.0",
+          "Microsoft.Extensions.Options": "8.0.0"
+        },
+        "runtime": {
+          "lib/net8.0/Microsoft.AspNetCore.SignalR.Common.dll": {
+            "assemblyVersion": "8.0.0.0",
+            "fileVersion": "8.0.23.53112"
+          }
+        }
+      },
+      "Microsoft.AspNetCore.SignalR.Protocols.Json/8.0.0": {
+        "dependencies": {
+          "Microsoft.AspNetCore.SignalR.Common": "8.0.0"
+        },
+        "runtime": {
+          "lib/net8.0/Microsoft.AspNetCore.SignalR.Protocols.Json.dll": {
+            "assemblyVersion": "8.0.0.0",
+            "fileVersion": "8.0.23.53112"
+          }
+        }
+      },
+      "Microsoft.Extensions.DependencyInjection/8.0.0": {
+        "dependencies": {
+          "Microsoft.Extensions.DependencyInjection.Abstractions": "8.0.0"
+        },
+        "runtime": {
+          "lib/net8.0/Microsoft.Extensions.DependencyInjection.dll": {
+            "assemblyVersion": "8.0.0.0",
+            "fileVersion": "8.0.23.53103"
+          }
+        }
+      },
+      "Microsoft.Extensions.DependencyInjection.Abstractions/8.0.0": {
+        "runtime": {
+          "lib/net8.0/Microsoft.Extensions.DependencyInjection.Abstractions.dll": {
+            "assemblyVersion": "8.0.0.0",
+            "fileVersion": "8.0.23.53103"
+          }
+        }
+      },
+      "Microsoft.Extensions.Features/8.0.0": {
+        "runtime": {
+          "lib/net8.0/Microsoft.Extensions.Features.dll": {
+            "assemblyVersion": "8.0.0.0",
+            "fileVersion": "8.0.23.53112"
+          }
+        }
+      },
+      "Microsoft.Extensions.Logging/8.0.0": {
+        "dependencies": {
+          "Microsoft.Extensions.DependencyInjection": "8.0.0",
+          "Microsoft.Extensions.Logging.Abstractions": "8.0.0",
+          "Microsoft.Extensions.Options": "8.0.0"
+        },
+        "runtime": {
+          "lib/net8.0/Microsoft.Extensions.Logging.dll": {
+            "assemblyVersion": "8.0.0.0",
+            "fileVersion": "8.0.23.53103"
+          }
+        }
+      },
+      "Microsoft.Extensions.Logging.Abstractions/8.0.0": {
+        "dependencies": {
+          "Microsoft.Extensions.DependencyInjection.Abstractions": "8.0.0"
+        },
+        "runtime": {
+          "lib/net8.0/Microsoft.Extensions.Logging.Abstractions.dll": {
+            "assemblyVersion": "8.0.0.0",
+            "fileVersion": "8.0.23.53103"
+          }
+        }
+      },
+      "Microsoft.Extensions.Options/8.0.0": {
+        "dependencies": {
+          "Microsoft.Extensions.DependencyInjection.Abstractions": "8.0.0",
+          "Microsoft.Extensions.Primitives": "8.0.0"
+        },
+        "runtime": {
+          "lib/net8.0/Microsoft.Extensions.Options.dll": {
+            "assemblyVersion": "8.0.0.0",
+            "fileVersion": "8.0.23.53103"
+          }
+        }
+      },
+      "Microsoft.Extensions.Primitives/8.0.0": {
+        "runtime": {
+          "lib/net8.0/Microsoft.Extensions.Primitives.dll": {
+            "assemblyVersion": "8.0.0.0",
+            "fileVersion": "8.0.23.53103"
+          }
+        }
+      },
+      "System.IO.Pipelines/8.0.0": {
+        "runtime": {
+          "lib/net8.0/System.IO.Pipelines.dll": {
+            "assemblyVersion": "8.0.0.0",
+            "fileVersion": "8.0.23.53103"
+          }
+        }
+      },
+      "System.Threading.Channels/8.0.0": {
+        "runtime": {
+          "lib/net8.0/System.Threading.Channels.dll": {
+            "assemblyVersion": "8.0.0.0",
+            "fileVersion": "8.0.23.53103"
+          }
+        }
+      }
+    }
+  },
+  "libraries": {
+    "CefSharp.Common.NETCore/126.2.70": {
+      "type": "package",
+      "serviceable": true,
+      "sha512": "sha512-T3leXaL+YtUyVtID0vDdVxwV+nt2pjeBHn+rFnb3yxKxQRlGON5ZBzKpnX7CzZgfRgp58y0OQL2rWerWxrmOsw==",
+      "path": "cefsharp.common.netcore/126.2.70",
+      "hashPath": "cefsharp.common.netcore.126.2.70.nupkg.sha512"
+    },
+    "CefSharp.Wpf.NETCore/126.2.70": {
+      "type": "package",
+      "serviceable": true,
+      "sha512": "sha512-EDPhCrawh3HuPJkNZEJCRugy4oSWx9yCSos7QenZ1tpVC8YOcYABqWpwKiZXWiVL8Xp/UDct7IDuT5PzMwc5/Q==",
+      "path": "cefsharp.wpf.netcore/126.2.70",
+      "hashPath": "cefsharp.wpf.netcore.126.2.70.nupkg.sha512"
+    },
+    "chromiumembeddedframework.runtime/126.2.7": {
+      "type": "package",
+      "serviceable": true,
+      "sha512": "sha512-UWgBVuaJ79R/AgkBBjXeU0f2xeCdkB6cEY6kPjVGzTlL+CEXXRLSnrAMMq8DU9vjk7/OvPW8uXB/tBzifTuT3Q==",
+      "path": "chromiumembeddedframework.runtime/126.2.7",
+      "hashPath": "chromiumembeddedframework.runtime.126.2.7.nupkg.sha512"
+    },
+    "Microsoft.AspNetCore.Connections.Abstractions/8.0.0": {
+      "type": "package",
+      "serviceable": true,
+      "sha512": "sha512-WgJE2+VyA0RW4yl+hgfrB7r4CSGcLzAvcVo31swukjXHZvBAjMilyG/pRJ8kroOO1h7sGf4r91Wii2L9gCMNfA==",
+      "path": "microsoft.aspnetcore.connections.abstractions/8.0.0",
+      "hashPath": "microsoft.aspnetcore.connections.abstractions.8.0.0.nupkg.sha512"
+    },
+    "Microsoft.AspNetCore.Http.Connections.Client/8.0.0": {
+      "type": "package",
+      "serviceable": true,
+      "sha512": "sha512-21F+t8ofQvH3LCKt6cvg6uzbF5jNbRwMJB5XOB4Prz7nEttP0iAq/EwqE7egdG8Nuoz56xd5jeKXHjU4S+KJ9g==",
+      "path": "microsoft.aspnetcore.http.connections.client/8.0.0",
+      "hashPath": "microsoft.aspnetcore.http.connections.client.8.0.0.nupkg.sha512"
+    },
+    "Microsoft.AspNetCore.Http.Connections.Common/8.0.0": {
+      "type": "package",
+      "serviceable": true,
+      "sha512": "sha512-iNum3ueml3fqP2YFx6QQSQDsUw5kn7UfZ88NUNwF93bLGebYZ0xIjwdEKOFwutrWfQK/a0QaITUEfygM8pVbeA==",
+      "path": "microsoft.aspnetcore.http.connections.common/8.0.0",
+      "hashPath": "microsoft.aspnetcore.http.connections.common.8.0.0.nupkg.sha512"
+    },
+    "Microsoft.AspNetCore.SignalR.Client/8.0.0": {
+      "type": "package",
+      "serviceable": true,
+      "sha512": "sha512-ZAxPPLh32MAEg06maSaUMYTklH8cfZdHUqLGUA5CdolzLNmtjslLXGPzIGetzyDmOXZPzTT1QAj/gK2DSrqFjw==",
+      "path": "microsoft.aspnetcore.signalr.client/8.0.0",
+      "hashPath": "microsoft.aspnetcore.signalr.client.8.0.0.nupkg.sha512"
+    },
+    "Microsoft.AspNetCore.SignalR.Client.Core/8.0.0": {
+      "type": "package",
+      "serviceable": true,
+      "sha512": "sha512-EIhKwrVMEy4IpFZY7+3I/91QwSFFAFIlAvTz1Q98VCoIYFuFMQsenA8Pg4lKmHCP8oIASVhtPB45haJ2ufovRw==",
+      "path": "microsoft.aspnetcore.signalr.client.core/8.0.0",
+      "hashPath": "microsoft.aspnetcore.signalr.client.core.8.0.0.nupkg.sha512"
+    },
+    "Microsoft.AspNetCore.SignalR.Common/8.0.0": {
+      "type": "package",
+      "serviceable": true,
+      "sha512": "sha512-HOy32Kb4z69sCep+pVUTL11L49pk8Ze18HuqCYllaRMdDlfcSrBE0stb8fJL+ogPKTB7XZAxpj1UT/IJQIfS6g==",
+      "path": "microsoft.aspnetcore.signalr.common/8.0.0",
+      "hashPath": "microsoft.aspnetcore.signalr.common.8.0.0.nupkg.sha512"
+    },
+    "Microsoft.AspNetCore.SignalR.Protocols.Json/8.0.0": {
+      "type": "package",
+      "serviceable": true,
+      "sha512": "sha512-3ygw561TXBKnqzfa5L7IBuo6BYgReHocyx4jdLc8utM49OAzU5u+6fTNjH/nvYOrDlPvUV+PZ3hH3jkZ0+Uocg==",
+      "path": "microsoft.aspnetcore.signalr.protocols.json/8.0.0",
+      "hashPath": "microsoft.aspnetcore.signalr.protocols.json.8.0.0.nupkg.sha512"
+    },
+    "Microsoft.Extensions.DependencyInjection/8.0.0": {
+      "type": "package",
+      "serviceable": true,
+      "sha512": "sha512-V8S3bsm50ig6JSyrbcJJ8bW2b9QLGouz+G1miK3UTaOWmMtFwNNNzUf4AleyDWUmTrWMLNnFSLEQtxmxgNQnNQ==",
+      "path": "microsoft.extensions.dependencyinjection/8.0.0",
+      "hashPath": "microsoft.extensions.dependencyinjection.8.0.0.nupkg.sha512"
+    },
+    "Microsoft.Extensions.DependencyInjection.Abstractions/8.0.0": {
+      "type": "package",
+      "serviceable": true,
+      "sha512": "sha512-cjWrLkJXK0rs4zofsK4bSdg+jhDLTaxrkXu4gS6Y7MAlCvRyNNgwY/lJi5RDlQOnSZweHqoyvgvbdvQsRIW+hg==",
+      "path": "microsoft.extensions.dependencyinjection.abstractions/8.0.0",
+      "hashPath": "microsoft.extensions.dependencyinjection.abstractions.8.0.0.nupkg.sha512"
+    },
+    "Microsoft.Extensions.Features/8.0.0": {
+      "type": "package",
+      "serviceable": true,
+      "sha512": "sha512-fxj+P9aIbTLtguFwiNqBtGNl4ZU/2Aggwj4/Ruf3qFaiBk7r1t8KnyJ+bEIK5emMyGSszTndwnP/g+gBEP9zLA==",
+      "path": "microsoft.extensions.features/8.0.0",
+      "hashPath": "microsoft.extensions.features.8.0.0.nupkg.sha512"
+    },
+    "Microsoft.Extensions.Logging/8.0.0": {
+      "type": "package",
+      "serviceable": true,
+      "sha512": "sha512-tvRkov9tAJ3xP51LCv3FJ2zINmv1P8Hi8lhhtcKGqM+ImiTCC84uOPEI4z8Cdq2C3o9e+Aa0Gw0rmrsJD77W+w==",
+      "path": "microsoft.extensions.logging/8.0.0",
+      "hashPath": "microsoft.extensions.logging.8.0.0.nupkg.sha512"
+    },
+    "Microsoft.Extensions.Logging.Abstractions/8.0.0": {
+      "type": "package",
+      "serviceable": true,
+      "sha512": "sha512-arDBqTgFCyS0EvRV7O3MZturChstm50OJ0y9bDJvAcmEPJm0FFpFyjU/JLYyStNGGey081DvnQYlncNX5SJJGA==",
+      "path": "microsoft.extensions.logging.abstractions/8.0.0",
+      "hashPath": "microsoft.extensions.logging.abstractions.8.0.0.nupkg.sha512"
+    },
+    "Microsoft.Extensions.Options/8.0.0": {
+      "type": "package",
+      "serviceable": true,
+      "sha512": "sha512-JOVOfqpnqlVLUzINQ2fox8evY2SKLYJ3BV8QDe/Jyp21u1T7r45x/R/5QdteURMR5r01GxeJSBBUOCOyaNXA3g==",
+      "path": "microsoft.extensions.options/8.0.0",
+      "hashPath": "microsoft.extensions.options.8.0.0.nupkg.sha512"
+    },
+    "Microsoft.Extensions.Primitives/8.0.0": {
+      "type": "package",
+      "serviceable": true,
+      "sha512": "sha512-bXJEZrW9ny8vjMF1JV253WeLhpEVzFo1lyaZu1vQ4ZxWUlVvknZ/+ftFgVheLubb4eZPSwwxBeqS1JkCOjxd8g==",
+      "path": "microsoft.extensions.primitives/8.0.0",
+      "hashPath": "microsoft.extensions.primitives.8.0.0.nupkg.sha512"
+    },
+    "System.IO.Pipelines/8.0.0": {
+      "type": "package",
+      "serviceable": true,
+      "sha512": "sha512-FHNOatmUq0sqJOkTx+UF/9YK1f180cnW5FVqnQMvYUN0elp6wFzbtPSiqbo1/ru8ICp43JM1i7kKkk6GsNGHlA==",
+      "path": "system.io.pipelines/8.0.0",
+      "hashPath": "system.io.pipelines.8.0.0.nupkg.sha512"
+    },
+    "System.Threading.Channels/8.0.0": {
+      "type": "package",
+      "serviceable": true,
+      "sha512": "sha512-CMaFr7v+57RW7uZfZkPExsPB6ljwzhjACWW1gfU35Y56rk72B/Wu+sTqxVmGSk4SFUlPc3cjeKND0zktziyjBA==",
+      "path": "system.threading.channels/8.0.0",
+      "hashPath": "system.threading.channels.8.0.0.nupkg.sha512"
+    }
+  }
+}

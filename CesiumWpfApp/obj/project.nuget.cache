@@ -1,0 +1,41 @@
+{
+  "version": 2,
+  "dgSpecHash": "7NqLmPqffcMNKcMptV9TOgbwLfFNCcOGG+QPvSOfSH9GhqMw8eELoQrVXHb14ghD6JTCuFhXEK7TyFCuDgeFyQ==",
+  "success": true,
+  "projectFilePath": "C:\\Users\\PC_5508\\Desktop\\paralel_harita\\Harita_Clone_Deneme\\CesiumWpfApp\\CesiumWpfApp.csproj",
+  "expectedPackageFiles": [
+    "C:\\Users\\PC_5508\\.nuget\\packages\\cefsharp.common.netcore\\126.2.70\\cefsharp.common.netcore.126.2.70.nupkg.sha512",
+    "C:\\Users\\PC_5508\\.nuget\\packages\\cefsharp.wpf.netcore\\126.2.70\\cefsharp.wpf.netcore.126.2.70.nupkg.sha512",
+    "C:\\Users\\PC_5508\\.nuget\\packages\\chromiumembeddedframework.runtime\\126.2.7\\chromiumembeddedframework.runtime.126.2.7.nupkg.sha512",
+    "C:\\Users\\PC_5508\\.nuget\\packages\\chromiumembeddedframework.runtime.win-x64\\126.2.7\\chromiumembeddedframework.runtime.win-x64.126.2.7.nupkg.sha512",
+    "C:\\Users\\PC_5508\\.nuget\\packages\\microsoft.aspnetcore.connections.abstractions\\8.0.0\\microsoft.aspnetcore.connections.abstractions.8.0.0.nupkg.sha512",
+    "C:\\Users\\PC_5508\\.nuget\\packages\\microsoft.aspnetcore.http.connections.client\\8.0.0\\microsoft.aspnetcore.http.connections.client.8.0.0.nupkg.sha512",
+    "C:\\Users\\PC_5508\\.nuget\\packages\\microsoft.aspnetcore.http.connections.common\\8.0.0\\microsoft.aspnetcore.http.connections.common.8.0.0.nupkg.sha512",
+    "C:\\Users\\PC_5508\\.nuget\\packages\\microsoft.aspnetcore.signalr.client\\8.0.0\\microsoft.aspnetcore.signalr.client.8.0.0.nupkg.sha512",
+    "C:\\Users\\PC_5508\\.nuget\\packages\\microsoft.aspnetcore.signalr.client.core\\8.0.0\\microsoft.aspnetcore.signalr.client.core.8.0.0.nupkg.sha512",
+    "C:\\Users\\PC_5508\\.nuget\\packages\\microsoft.aspnetcore.signalr.common\\8.0.0\\microsoft.aspnetcore.signalr.common.8.0.0.nupkg.sha512",
+    "C:\\Users\\PC_5508\\.nuget\\packages\\microsoft.aspnetcore.signalr.protocols.json\\8.0.0\\microsoft.aspnetcore.signalr.protocols.json.8.0.0.nupkg.sha512",
+    "C:\\Users\\PC_5508\\.nuget\\packages\\microsoft.extensions.dependencyinjection\\8.0.0\\microsoft.extensions.dependencyinjection.8.0.0.nupkg.sha512",
+    "C:\\Users\\PC_5508\\.nuget\\packages\\microsoft.extensions.dependencyinjection.abstractions\\8.0.0\\microsoft.extensions.dependencyinjection.abstractions.8.0.0.nupkg.sha512",
+    "C:\\Users\\PC_5508\\.nuget\\packages\\microsoft.extensions.features\\8.0.0\\microsoft.extensions.features.8.0.0.nupkg.sha512",
+    "C:\\Users\\PC_5508\\.nuget\\packages\\microsoft.extensions.logging\\8.0.0\\microsoft.extensions.logging.8.0.0.nupkg.sha512",
+    "C:\\Users\\PC_5508\\.nuget\\packages\\microsoft.extensions.logging.abstractions\\8.0.0\\microsoft.extensions.logging.abstractions.8.0.0.nupkg.sha512",
+    "C:\\Users\\PC_5508\\.nuget\\packages\\microsoft.extensions.options\\8.0.0\\microsoft.extensions.options.8.0.0.nupkg.sha512",
+    "C:\\Users\\PC_5508\\.nuget\\packages\\microsoft.extensions.primitives\\8.0.0\\microsoft.extensions.primitives.8.0.0.nupkg.sha512",
+    "C:\\Users\\PC_5508\\.nuget\\packages\\system.io.pipelines\\8.0.0\\system.io.pipelines.8.0.0.nupkg.sha512",
+    "C:\\Users\\PC_5508\\.nuget\\packages\\system.threading.channels\\8.0.0\\system.threading.channels.8.0.0.nupkg.sha512"
+  ],
+  "logs": [
+    {
+      "code": "NU1903",
+      "level": "Warning",
+      "warningLevel": 1,
+      "message": "Package 'CefSharp.Wpf.NETCore' 126.2.70 has a known high severity vulnerability, https://github.com/advisories/GHSA-f87w-3j5w-v58p",
+      "libraryId": "CefSharp.Wpf.NETCore",
+      "targetGraphs": [
+        "net8.0-windows7.0",
+        "net8.0-windows7.0/win-x64"
+      ]
+    }
+  ]
+}
