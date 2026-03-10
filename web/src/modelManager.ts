@@ -1,20 +1,26 @@
 import * as Cesium from "cesium";
 import { viewer } from "./harita";
-import { MovementEngine, ValidationConfig } from "./movementEngine";
+import { MovementEngine, KinematicProfile } from "./movementEngine";
 
 // --- VALIDATION LIMITS ---
-const SHIP_LIMITS: ValidationConfig = {
+const SHIP_LIMITS: KinematicProfile = {
     maxPhysicalSpeed: 40,
     maxAltitude: 300,
     minAltitude: -10,
-    maxJumpDistancePerSecond: 60
+    maxJumpDistancePerSecond: 60,
+
+    minCorrectionSpeed: 2.0,  // Gemi dururken bile düzeltmeleri çok yavaş (saniyede 2 metre) yapar.
+    catchUpTimeSec: 3.0       // Hatayı kapatmak için acele etmez, 3 saniyeye yayarak pürüzsüzce süzülür.
 };
 
-const PLANE_LIMITS: ValidationConfig = {
+const PLANE_LIMITS: KinematicProfile = {
     maxPhysicalSpeed: 600,
     maxAltitude: 25000,
     minAltitude: -100,
-    maxJumpDistancePerSecond: 1000
+    maxJumpDistancePerSecond: 1000,
+
+    minCorrectionSpeed: 20.0, // Taksi yaparken veya yavaşken bile konum sapmalarını atikçe (20 m/s) kapatır.
+    catchUpTimeSec: 0.5       // Hatayı yarım saniye içinde çok agresif bir şekilde sönümler.
 };
 
 // --- NESNE TAKİPÇİLERİ (ENGINES) ---
@@ -60,6 +66,7 @@ export const updateEntityPosition = (id: string, lon: number, lat: number, heigh
         if (!shipEngine) {
             // shipEngine = new MovementEngine(lon, lat, height);
             shipEngine = new MovementEngine(lon, lat, height, 0, 0, 0, SHIP_LIMITS);
+                //(window as any).shipEngine = shipEngine; // GLOBALE BAĞLA (DEBUG)
             shipEngine.setOrientationOffset(Math.PI); // Gemi kıç tarafıyla (ters : Math.PI/2 iken ters gider) ilerlediği için 180 derece (PI) ofset ekledik ,
             addAircraftCarrier();
         }
@@ -69,6 +76,7 @@ export const updateEntityPosition = (id: string, lon: number, lat: number, heigh
         if (!planeEngine) {
             // planeEngine = new MovementEngine(lon, lat, height);
             planeEngine = new MovementEngine(lon, lat, height, 0, 0, 0, PLANE_LIMITS);
+                //(window as any).planeEngine = planeEngine; // GLOBALE BAĞLA (DEBUG)
             planeEngine.setOrientationOffset(-Math.PI / 2); // Uçak burnu 90 derece sapmalı, düzeltelim
             addLandingPlane();
         }
@@ -87,6 +95,7 @@ export const updateEntityPosition = (id: string, lon: number, lat: number, heigh
         if (!deckEngine) {
             // deckEngine = new MovementEngine(lon, lat, height);
             deckEngine = new MovementEngine(lon, lat, height, 0, 0, 0, SHIP_LIMITS);
+                //(window as any).deckEngine = deckEngine; // GLOBALE BAĞLA (DEBUG)
             createFlightDeckGroup();
         }
         deckEngine.onPacketReceived(lon, lat, height, speed, h, p, r, timestamp);
@@ -419,4 +428,51 @@ const drawFlightDeck = (parent: Cesium.Entity) => {
             }
         });
     });
+};
+
+// modelManager.ts sonuna eklenebilir
+(window as any).testAttack = (scenario: number) => {
+    if (!(window as any).planeEngine) {
+        console.error("Uçak henüz oluşmadı!");
+        return;
+    }
+    const engine = (window as any).planeEngine;
+    const now = Date.now();
+    const lon = 28.5, lat = 40.5, alt = 1000, speed = 100;
+
+    switch(scenario) {
+        case 1: // ZAMAN SALDIRISI (Gecikmiş Paket)
+            console.log("Test 1: Eski Timestamp gönderiliyor...");
+            engine.onPacketReceived(lon, lat, alt, speed, 0, 0, 0, now - 5000); 
+            break;
+            
+        case 2: // NaN SALDIRISI
+            console.log("Test 2: NaN veri gönderiliyor...");
+            engine.onPacketReceived(lon, lat, NaN, speed, 0, 0, 0, now + 100);
+            break;
+
+        case 3: // COĞRAFİ SINIR SALDIRISI
+            console.log("Test 3: Geçersiz Enlem (120 derece) gönderiliyor...");
+            engine.onPacketReceived(lon, 120, alt, speed, 0, 0, 0, now + 200);
+            break;
+
+        case 4: // HIZ LİMİTİ SALDIRISI (Uçak için max 600m/s demiştik)
+            console.log("Test 4: 2000 m/s hız gönderiliyor...");
+            engine.onPacketReceived(lon, lat, alt, 2000, 0, 0, 0, now + 300);
+            break;
+
+        case 5: // ANLIK IŞINLANMA (Outlier Testi)
+            console.log("Test 5: Uçak aniden 5km öteye ışınlanıyor (Tek Paket)...");
+            engine.onPacketReceived(lon + 0.05, lat + 0.05, alt, speed, 0, 0, 0, now + 400);
+            break;
+
+        case 6: // KALICI IŞINLANMA (ForceSync Testi)
+            console.log("Test 6: Uçak 5km ötede kalmaya zorlanıyor (1.5sn boyunca)...");
+            let count = 0;
+            const interval = setInterval(() => {
+                engine.onPacketReceived(lon + 0.05, lat + 0.05, alt, speed, 0, 0, 0, Date.now());
+                if (++count > 20) clearInterval(interval); // Yaklaşık 2sn boyunca gönder
+            }, 100);
+            break;
+    }
 };

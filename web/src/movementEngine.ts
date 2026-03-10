@@ -6,11 +6,15 @@ import * as Cesium from "cesium";
  * + movementEngine'den heading+turnRate ile eğrisel pozisyon tahmini
  */
 
-export interface ValidationConfig {
+export interface KinematicProfile {
     maxPhysicalSpeed?: number;         // m/s (Örn: 500)
     minAltitude?: number;              // m
     maxAltitude?: number;              // m
     maxJumpDistancePerSecond?: number; // m/s (Anlık sıçrama sınırı)
+
+    // YENİ EKLENEN JENERİK AYARLAR
+    minCorrectionSpeed?: number;       // m/s (Duran aracın pozisyon düzeltme hızı. Gemi için 2, Uçak için 20 vb.)
+    catchUpTimeSec?: number;           // Saniye (Hata kapatma agresifliği. Gemi için 2.0, Uçak için 0.5)
 }
 
 export class MovementEngine {
@@ -18,7 +22,7 @@ export class MovementEngine {
     private lastRealPos = new Cesium.Cartesian3();
     private targetQuat = new Cesium.Quaternion();   // Gidilmesi gereken kesin yönelim
     public rotationOffset: number = 0; // Model yön düzeltmesi (radyan) — bazı modeller yanlış yöne bakar
-    private config: Required<ValidationConfig>;
+    private profile: Required<KinematicProfile>;
 
     // --- EĞRİSEL TAHMİN VERİLERİ (heading + turnRate) ---
     private heading: number = 0;     // Son gelen heading (radyan)
@@ -48,12 +52,16 @@ export class MovementEngine {
 
 
     // --- AYARLAR ---
-    private readonly POS_SMOOTH_SPEED = 2.5; // Konum süzülme hızı (düşük = yumuşak, gecikme artar)
-    private readonly ORI_SMOOTH_SPEED = 4.0; // Yönelim süzülme hızı
+    private readonly POS_SMOOTH_SPEED = 2.5; //2.5; //15.0; // Konum süzülme hızı (düşük = yumuşak, gecikme artar)
+    private readonly ORI_SMOOTH_SPEED = 4.0; //4.0; //10.0; // Yönelim süzülme hızı
     
     private orientationOffset: number = 0; // Radyan cinsinden görsel sapma (örn: 180 derece için Math.PI)
     private readonly PREDICTION_MAX_SEC = 5.0;
-    private readonly MAX_CORRECTION_PER_SEC = 100; // DIS Convergence: max düzeltme hızı (m/s)
+    
+    // KRİTİK: MAX_CORRECTION_PER_SEC uçağın maksimum hızından çok daha büyük olmalıdır.
+    // 500m/s ile giden bir uçağın geride kalmaması için bu limit 1000m/s'ye çıkarıldı.
+    private readonly MAX_CORRECTION_PER_SEC = 100; //100 // DIS Convergence: max düzeltme hızı (m/s)
+    
     private readonly MAX_ROLL_RAD = Cesium.Math.toRadians(60);   // Maksimum roll: ±60°
     private readonly MAX_PITCH_RAD = Cesium.Math.toRadians(45);  // Maksimum pitch: ±45°
     private readonly GRAVITY = 9.81; // Yerçekimi ivmesi (m/s²)
@@ -77,13 +85,15 @@ export class MovementEngine {
     private outlierStartTime: number = 0; // İlk hatalı paketin geldiği zaman (ms)
     private readonly OUTLIER_DURATION_LIMIT = 1.5; // Maksimum bekleme süresi (Saniye)
 
-    constructor(initialLon: number, initialLat: number, initialHeight: number, initialH: number = 0, initialP: number = 0, initialR: number = 0, config?: ValidationConfig) {
+    constructor(initialLon: number, initialLat: number, initialHeight: number, initialH: number = 0, initialP: number = 0, initialR: number = 0, profile?: KinematicProfile) {
         // Doğrulama ayarlarını hazırla
-        this.config = {
-            maxPhysicalSpeed: config?.maxPhysicalSpeed ?? 600,
-            minAltitude: config?.minAltitude ?? -100,
-            maxAltitude: config?.maxAltitude ?? 25000,
-            maxJumpDistancePerSecond: config?.maxJumpDistancePerSecond ?? 1000
+        this.profile = {
+            maxPhysicalSpeed: profile?.maxPhysicalSpeed ?? 600,
+            minAltitude: profile?.minAltitude ?? -100,
+            maxAltitude: profile?.maxAltitude ?? 25000,
+            maxJumpDistancePerSecond: profile?.maxJumpDistancePerSecond ?? 2000, // 1000 -> 2000 (Mach ~6)
+            minCorrectionSpeed: profile?.minCorrectionSpeed ?? 10.0, // Varsayılan 10 m/s
+            catchUpTimeSec: profile?.catchUpTimeSec ?? 1.0 // Varsayılan 1 saniye
         };
 
         // Verilen derece cinsinden coğrafi konumu Cesium'un kullandığı ECEF koordinatlarına çevirir
@@ -124,9 +134,9 @@ export class MovementEngine {
      */
     public onPacketReceived(lon: number, lat: number, alt: number, speed: number, h: number, p: number, r: number, serverTimestamp: number) {
         // Gelen veriyi bekçi metodundan geçir
-        if (!this.isValidPacket(lon, lat, alt, speed,h,p,r, serverTimestamp)) {
-            return; // Geçersiz paket, işleme devam etme
-        }
+        //if (!this.isValidPacket(lon, lat, alt, speed,h,p,r, serverTimestamp)) {
+        //    return; // Geçersiz paket, işleme devam etme
+        //}
 
         const localNow = Date.now();
         const previousServerTime = this.lastServerTime;
@@ -171,7 +181,7 @@ export class MovementEngine {
                 if (deltaT < -Math.PI) deltaT += Math.PI * 2;
                 this.trackTurnRate = deltaT / dtPacket;
             }            
-                   
+                    
             // turnRate hesabı - Belki yönelim için kullanılır ?? 
             let deltaH = h - this.lastHeading;
             if (deltaH > Math.PI) deltaH -= Math.PI * 2;
@@ -197,6 +207,64 @@ export class MovementEngine {
     public setOrientationOffset(offsetRad: number): void {
         this.orientationOffset = offsetRad;
     }
+
+    /*
+    public getLatestPosition(result: Cesium.Cartesian3): Cesium.Cartesian3 {
+        const localNow = Date.now();
+        const estimatedServerNow = localNow - this.serverClientOffset;
+        let dtSincePacket = (estimatedServerNow - this.lastServerTime) / 1000;
+        
+        // Emniyet Kemerleri
+        if (dtSincePacket < 0) dtSincePacket = 0;
+        if (dtSincePacket > this.PREDICTION_MAX_SEC) dtSincePacket = this.PREDICTION_MAX_SEC;
+
+        // HEADING + TRACK ANGLE TAHMİNİ: Basit ama sağlam ekstrapolasyon
+        const targetPos = Cesium.Cartesian3.clone(this.lastRealPos, MovementEngine._sTargetPos);
+
+        if (dtSincePacket > 0 && this.speed > 0.01 && this.packetCount >= 2) {
+            // const predictedHeading = this.heading + (this.turnRate * dtSincePacket);
+            // ARTIK TAHMİNİ HEADING İLE DEĞİL, TRACK ANGLE İLE YAPIYORUZ
+            // Bu sayede rüzgar etkisi (drift) otomatik korunur.
+            const predictedTrack = this.trackAngle + (this.trackTurnRate * dtSincePacket);
+
+            const moveEnu = MovementEngine._sMoveEnu;
+            moveEnu.x = Math.sin(predictedTrack) * this.speed * dtSincePacket; // East
+            moveEnu.y = Math.cos(predictedTrack) * this.speed * dtSincePacket; // North
+            // moveEnu.z = 0;
+
+            // DİKEY TAHMİN (Yeni eklenen kısım)
+            // Uçak paketler arasında vz hızıyla yükseliyor veya alçalıyor
+            moveEnu.z = this.vz * dtSincePacket;
+
+            // ENU → ECEF dönüşüm matrisi
+            Cesium.Transforms.eastNorthUpToFixedFrame(this.lastRealPos, Cesium.Ellipsoid.WGS84, MovementEngine._sEnuMatrix);
+            Cesium.Matrix4.multiplyByPointAsVector(MovementEngine._sEnuMatrix, moveEnu, MovementEngine._sMoveEcef);
+            Cesium.Cartesian3.add(targetPos, MovementEngine._sMoveEcef, targetPos);
+        }
+        // DIS CONVERGENCE CORRIDOR: Yumuşatma + Maksimum düzeltme hızı limiti
+
+        // Hedef pozisyon ile mevcut görsel pozisyon arasındaki farkı hesapla
+        const diff = Cesium.Cartesian3.subtract(targetPos, this.currentVisualPos, MovementEngine._sDiff);
+        const distance = Cesium.Cartesian3.magnitude(diff);
+        
+        // Exponential smoothing
+        // Aracın hedefe doğru yüzde kaç oranında yaklaşması gerektiği (0.0 ile 1.0 arası bir katsayı) hesaplanıyor.
+        let lerpFactor = 1.0 - Math.exp(-this.POS_SMOOTH_SPEED * this.currentFrameDt);
+        
+        // Bir karede en fazla MAX_CORRECTION_PER_SEC × dt metre hareket edebilir
+        const maxMove = this.MAX_CORRECTION_PER_SEC * this.currentFrameDt;
+
+        // Eğer hedefe çok yakınsak, yumuşatma faktörü azalt
+        // Eğer hedefe olan uzaklık çok fazlaysa (örn internet 3sn koptu, uçak 1000 m geride kaldı), 
+        // Üstel Yumuşatma formülü uçağı çok hızlı çekmek isteyecektir. Bu blok, bu aşırı hızı engeller.
+        if (distance * lerpFactor > maxMove && distance > 0) {
+            lerpFactor = maxMove / distance;
+        }
+
+        Cesium.Cartesian3.lerp(this.currentVisualPos, targetPos, lerpFactor, this.currentVisualPos);
+
+        return Cesium.Cartesian3.clone(this.currentVisualPos, result);
+    }*/
 
     public getLatestPosition(result: Cesium.Cartesian3): Cesium.Cartesian3 {
         const localNow = Date.now();
@@ -230,19 +298,34 @@ export class MovementEngine {
             Cesium.Matrix4.multiplyByPointAsVector(MovementEngine._sEnuMatrix, moveEnu, MovementEngine._sMoveEcef);
             Cesium.Cartesian3.add(targetPos, MovementEngine._sMoveEcef, targetPos);
         }
-
         // DIS CONVERGENCE CORRIDOR: Yumuşatma + Maksimum düzeltme hızı limiti
 
         // Hedef pozisyon ile mevcut görsel pozisyon arasındaki farkı hesapla
         const diff = Cesium.Cartesian3.subtract(targetPos, this.currentVisualPos, MovementEngine._sDiff);
         const distance = Cesium.Cartesian3.magnitude(diff);
         
+        // 1. 3D Vektörel Hız (Bileşke Hız)
+        // ECEF koordinat sisteminde hareket ettiğimiz için x, y ve z bileşenlerinin 
+        // toplam büyüklüğü uçağın uzaydaki gerçek "yürüme" kapasitesidir.
+        const vectorSpeed = Math.sqrt(Math.pow(this.speed, 2) + Math.pow(this.vz, 2));
+        // 2. Dinamik Düzeltme Kapasitesi (Overdrive)
+        // Hatayı kapatmak için uçağa kendi hızının en fazla %50'si kadar "ekstra hız" veriyoruz.
+        // Bu, uçağın fiziksel limitlerini saçma sapan zorlamasını engeller.
+        const maxOverdrive = vectorSpeed * 0.5; 
+        // Hata ne kadar büyükse o kadar hızlı yetişmeye çalış, ama maxOverdrive'ı geçme.
+        // Buradaki '0.5' (saniye), hatanın ne kadar sürede sönümleneceğidir ama clamp sayesinde güvenlidir.
+        const catchUpSpeed = Math.min(distance / this.profile.catchUpTimeSec, maxOverdrive);
+        // 3. Nihai Limit
+        // Uçak duruyorsa (hız=0) bile küçük hataları düzeltebilmesi için bir taban (örn: 20m/s) ekliyoruz.
+        const dynamicCorrectionLimit = Math.max(this.profile.minCorrectionSpeed, vectorSpeed + catchUpSpeed);
+
         // Exponential smoothing
         // Aracın hedefe doğru yüzde kaç oranında yaklaşması gerektiği (0.0 ile 1.0 arası bir katsayı) hesaplanıyor.
         let lerpFactor = 1.0 - Math.exp(-this.POS_SMOOTH_SPEED * this.currentFrameDt);
         
         // Bir karede en fazla MAX_CORRECTION_PER_SEC × dt metre hareket edebilir
-        const maxMove = this.MAX_CORRECTION_PER_SEC * this.currentFrameDt;
+        // const maxMove = this.MAX_CORRECTION_PER_SEC * this.currentFrameDt;
+        const maxMove = dynamicCorrectionLimit * this.currentFrameDt;
 
         // Eğer hedefe çok yakınsak, yumuşatma faktörü azalt
         // Eğer hedefe olan uzaklık çok fazlaysa (örn internet 3sn koptu, uçak 1000 m geride kaldı), 
@@ -311,17 +394,32 @@ export class MovementEngine {
      */
     private isValidPacket(lon: number, lat: number, alt: number, speed: number, h: number, p: number, r: number, serverTimestamp: number): boolean {
         // 1. Zaman Kontrolü (Gecikmiş veya mükerrer veri tespiti)
-        if (serverTimestamp <= this.lastServerTime) return false;
+        if (serverTimestamp <= this.lastServerTime) {
+            console.warn(`[MovementEngine] Eski/Mükerrer Paket: ${serverTimestamp} <= ${this.lastServerTime}`);
+            return false;
+        }
 
         // 2. Sayısal Güvenlik (NaN/Sonsuz veri tespiti)
-        if (![lon, lat, alt, speed, h, p, r].every(Number.isFinite)) return false;
+        if (![lon, lat, alt, speed, h, p, r].every(Number.isFinite)) {
+            console.warn(`[MovementEngine] Geçersiz Sayı (NaN/Inf) Tespit Edildi!`);
+            return false;
+        }
 
         // 3. Sabit Coğrafi Sınırlar (WGS84)
-        if (lat < -90 || lat > 90 || lon < -180 || lon > 180) return false;
+        if (lat < -90 || lat > 90 || lon < -180 || lon > 180) {
+            console.warn(`[MovementEngine] Coğrafi Sınır Dışı: Lat:${lat}, Lon:${lon}`);
+            return false;
+        }
 
-        // 4. Yapılandırılmış Fiziksel Limitler (Config üzerinden)
-        if (alt < this.config.minAltitude || alt > this.config.maxAltitude) return false; // İrtifa Kontrolü
-        if (speed > this.config.maxPhysicalSpeed) return false; // Hız Kontrolü ????
+        // 4. Yapılandırılmış Fiziksel Limitler (profile üzerinden)
+        if (alt < this.profile.minAltitude || alt > this.profile.maxAltitude) {
+            console.warn(`[MovementEngine] İrtifa Limiti Dışı: ${alt}m (Limit: ${this.profile.minAltitude}-${this.profile.maxAltitude})`);
+            return false;
+        }
+        if (speed > this.profile.maxPhysicalSpeed) {
+            console.warn(`[MovementEngine] Hız Limiti Dışı: ${speed}m/s (Limit: ${this.profile.maxPhysicalSpeed})`);
+            return false;
+        }
 
         // 5.1 İlk Paket Kontrolü
         if (this.lastServerTime === 0) { // ????
@@ -342,7 +440,7 @@ export class MovementEngine {
             const calculatedSpeed = jumpDist / dtPacket;
 
             // Belirlediğin hız limitinden (maxJumpDistancePerSecond) büyükse
-            if (calculatedSpeed > this.config.maxJumpDistancePerSecond) {
+            if (calculatedSpeed > this.profile.maxJumpDistancePerSecond) {
 
                 // EĞER BU SERİNİN İLK HATALI PAKETİYSE: Sayacı ve zamanı ŞİMDİ başlat
                 if (this.outlierCount === 0) {
