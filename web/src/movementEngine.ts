@@ -376,13 +376,14 @@ export class MovementEngine {
 
     /**
      * Uçağı anında yeni bir konuma ve yöne ışınlar.
+     * this.currentVisualPos ve this.currentVisualQuat'ı günceller.
      * Yumuşatma (smoothing) ve tahmini (prediction) devre dışı bırakır.
      */
-    private forceSync(lon: number, lat: number, alt: number, h: number, p: number, r: number) {
+    private forceSyncEski(lon: number, lat: number, alt: number, h: number, p: number, r: number) {
         // 1. Kesin konumu güncelle (lastRealPos doğrudan güncellenir)
         Cesium.Cartesian3.fromDegrees(lon, lat, alt, Cesium.Ellipsoid.WGS84, this.lastRealPos);
 
-        // 2. Kesin yönelimi (Quaternion) hesapla ve targetQuat'a yaz
+        // 2. Kesin yönelimi (Quaternion) hesapla ve targetQuat'a yaz ?????
         const newQuat = this.calculateQuaternion(this.lastRealPos, h, p, r);
         Cesium.Quaternion.clone(newQuat, this.targetQuat);
 
@@ -395,7 +396,27 @@ export class MovementEngine {
         // packetCount'u 0 yapmak, getLatestPosition içindeki 'if (packetCount >= 2)' 
         // kontrolü sayesinde yeni paketler gelene kadar hatalı tahmin yapılmasını engeller.
         this.packetCount = 0;
-        this.outlierCount = 0;
+
+        console.log(`[MovementEngine] Işınlanma tamamlandı: ${lon.toFixed(5)}, ${lat.toFixed(5)}`);
+    }
+
+    /**
+     * Uçağı anında yeni bir konuma ve yöne ışınlar.
+     * this.currentVisualPos ve this.currentVisualQuat'ı günceller.
+     * Yumuşatma (smoothing) ve tahmini (prediction) devre dışı bırakır.
+    */
+    private forceSync(lon: number, lat: number, alt: number, h: number, p: number, r: number) {
+        // 1. Sadece GÖRSEL durumu anında eşitle (Işınlanma efekti için)
+        const posEcef = Cesium.Cartesian3.fromDegrees(lon, lat, alt, Cesium.Ellipsoid.WGS84, MovementEngine._sNewPos);
+        Cesium.Cartesian3.clone(posEcef, this.currentVisualPos);
+        
+        const quat = this.calculateQuaternion(posEcef, h, p, r);
+        Cesium.Quaternion.clone(quat, this.currentVisualQuat);
+
+        // 2. TAHMİN MOTORUNU SIFIRLA
+        // packetCount'u 0 yapmak, getLatestPosition içindeki 'if (packetCount >= 2)' 
+        // kontrolü sayesinde yeni paketler gelene kadar hatalı tahmin yapılmasını engeller.
+        this.packetCount = 0;
 
         console.log(`[MovementEngine] Işınlanma tamamlandı: ${lon.toFixed(5)}, ${lat.toFixed(5)}`);
     }
