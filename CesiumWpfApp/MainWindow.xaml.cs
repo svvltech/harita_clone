@@ -36,7 +36,7 @@ namespace CesiumWpfApp
 
         // Uçak test modu (mevcut switch ile aynı)
         // 0 = Spiral iniş, 1 = Düz çizgi, 2 = Sabit daire
-        private int _planeMovementMode = 0;
+        private int _planeMovementMode = 8;
 
         // ═══════════════════════════════════════════════════════════════
         // SİMÜLASYON VERİLERİ (başlangıç konumları)
@@ -171,6 +171,55 @@ namespace CesiumWpfApp
                         _planeLat = _shipLat + Math.Sin(angle) * radius;
                         break;
 
+                    case 4: // TEST 1: ANİ DUR-KALK (Dash & Stop)
+                            // 4 saniye tam gaz (Mach 1.5 civarı), 4 saniye tamamen sabit (havada asılı)
+                            double cycle = _simTime % 8.0;
+                            if (cycle < 4.0)
+                            {
+                                _planeLon += 0.001 * SIM_TICK * 20; // Çok yüksek hız
+                                _planeLat += 0.001 * SIM_TICK * 20;
+                            }
+                            // cycle >= 4.0 iken konum değişmiyor (0 hız)
+                            _planeAlt = 500;
+                            break;
+
+
+                    case 5: // TEST 2: DİKİNE DALIŞ VE TIRMANIŞ (Vz Testi)
+                            // Yatayda çok yavaş gidiyor (neredeyse helikopter gibi)
+                            _planeLon += 0.00005 * SIM_TICK * 20; 
+                            
+                            // İrtifa 1000m ile 8000m arasında bir sinüs dalgası çizerek ÇOK hızlı değişiyor
+                            double altCycle = Math.Sin(_simTime); // -1 ile 1 arası
+                            _planeAlt = 4500 + (altCycle * 3500); // Dikey hız binlerce m/s'yi bulacak
+                            break;
+
+                    case 6: // TEST 3: VERİ SIÇRAMASI (Lag & Catch-up)
+                            // Normal hızda düz gidiyor
+                            _planeLon += 0.0003 * SIM_TICK * 20;
+                            
+                            // Her 10 saniyede bir, koordinatlara dışarıdan müdahale et (Ağ kopup geri gelmiş gibi)
+                            // Simülasyon saati tam 10, 20, 30. saniyelerden geçerken uçağı aniden ~1 KM ileri fırlat.
+                            if (Math.Abs(_simTime % 10.0) < SIM_TICK && _simTime > 1.0)
+                            {
+                                _planeLon += 0.01; // Sıçrama! (Bu esnada forceSync/outlier mekanizması tetiklenebilir)
+                                _planeLat += 0.01;
+                            }
+                            _planeAlt = 1000;
+                            break;
+
+                    case 8: // NİHAİ TEST: SÜREKLİ HIZLANMA (Acceleration Sweep)
+                        // Uçak başlangıçta çok yavaş (50 m/s), ama her saniye 20 m/s daha hızlanacak.
+                        // Simülasyonun 50. saniyesinde uçak ~1000 m/s (Mach 3) hıza ulaşmış olacak.
+                        
+                        double currentSpeed = 50.0 + (_simTime * 20.0); 
+                        
+                        double dLon8 = (currentSpeed * SIM_TICK) / (111320 * Math.Cos(_planeLat * Math.PI / 180));
+                        _planeLon += dLon8;
+                        
+                        // Yüksek hızlarda sapma olup olmadığını görmek için hafifçe kuzeye de kaysın
+                        _planeLat += dLon8 * 0.1; 
+                        _planeAlt = 2000;
+                        break;
                     default: // SPİRALDEN SABİT YÖRÜNGE (İniş yerine belirli bir irtifada dönme)
                         double startAlt = 300.0;
                         double targetAlt = 100.0; // Bu irtifada durup sadece dönecek
