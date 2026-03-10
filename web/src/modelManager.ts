@@ -66,7 +66,7 @@ export const updateEntityPosition = (id: string, lon: number, lat: number, heigh
         if (!shipEngine) {
             // shipEngine = new MovementEngine(lon, lat, height);
             shipEngine = new MovementEngine(lon, lat, height, 0, 0, 0, SHIP_LIMITS);
-                //(window as any).shipEngine = shipEngine; // GLOBALE BAĞLA (DEBUG)
+                (window as any).shipEngine = shipEngine; // GLOBALE BAĞLA (DEBUG)
             shipEngine.setOrientationOffset(Math.PI); // Gemi kıç tarafıyla (ters : Math.PI/2 iken ters gider) ilerlediği için 180 derece (PI) ofset ekledik ,
             addAircraftCarrier();
         }
@@ -76,7 +76,7 @@ export const updateEntityPosition = (id: string, lon: number, lat: number, heigh
         if (!planeEngine) {
             // planeEngine = new MovementEngine(lon, lat, height);
             planeEngine = new MovementEngine(lon, lat, height, 0, 0, 0, PLANE_LIMITS);
-                //(window as any).planeEngine = planeEngine; // GLOBALE BAĞLA (DEBUG)
+                (window as any).planeEngine = planeEngine; // GLOBALE BAĞLA (DEBUG)
             planeEngine.setOrientationOffset(-Math.PI / 2); // Uçak burnu 90 derece sapmalı, düzeltelim
             addLandingPlane();
         }
@@ -95,7 +95,7 @@ export const updateEntityPosition = (id: string, lon: number, lat: number, heigh
         if (!deckEngine) {
             // deckEngine = new MovementEngine(lon, lat, height);
             deckEngine = new MovementEngine(lon, lat, height, 0, 0, 0, SHIP_LIMITS);
-                //(window as any).deckEngine = deckEngine; // GLOBALE BAĞLA (DEBUG)
+                (window as any).deckEngine = deckEngine; // GLOBALE BAĞLA (DEBUG)
             createFlightDeckGroup();
         }
         deckEngine.onPacketReceived(lon, lat, height, speed, h, p, r, timestamp);

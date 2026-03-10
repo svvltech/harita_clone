@@ -134,9 +134,9 @@ export class MovementEngine {
      */
     public onPacketReceived(lon: number, lat: number, alt: number, speed: number, h: number, p: number, r: number, serverTimestamp: number) {
         // Gelen veriyi bekçi metodundan geçir
-        //if (!this.isValidPacket(lon, lat, alt, speed,h,p,r, serverTimestamp)) {
-        //    return; // Geçersiz paket, işleme devam etme
-        //}
+        if (!this.isValidPacket(lon, lat, alt, speed,h,p,r, serverTimestamp)) {
+            return; // Geçersiz paket, işleme devam etme
+        }
 
         const localNow = Date.now();
         const previousServerTime = this.lastServerTime;
