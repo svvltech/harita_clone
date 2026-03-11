@@ -36,7 +36,7 @@ namespace CesiumWpfApp
 
         // Uçak test modu (mevcut switch ile aynı)
         // 0 = Spiral iniş, 1 = Düz çizgi, 2 = Sabit daire
-        private int _planeMovementMode = 11;
+        private int _planeMovementMode = 9;
 
         // ═══════════════════════════════════════════════════════════════
         // SİMÜLASYON VERİLERİ (başlangıç konumları)
@@ -221,7 +221,7 @@ namespace CesiumWpfApp
                         _planeAlt = 2000;
                         break;
 
-                    case 9: // TEST 5: VİRAJDA (DÖNÜŞTE) OUTLIER VE KESİNTİ TESTİ
+                    case 19: // TEST 5: VİRAJDA (DÖNÜŞTE) OUTLIER VE KESİNTİ TESTİ
                         // 1. C# simülasyonunda uçağın hız limiti 600m/s. 
                         // Limite takılmamak için hızı ~200 m/s olan güvenli bir daire çizelim.
                         double radius1 = 0.01; // Yaklaşık 1.1 km
@@ -244,11 +244,76 @@ namespace CesiumWpfApp
                         }
                         else if (_simTime >= 20.0 && _simTime <= 23.0)
                         {
+                            //_planeLon += 0.01;  //hız limitini aşamadı
+                            //_planeLat += 0.01;
+
                             // 3 Saniyelik Kalıcı Hata (Süre 1.5 sn'yi aştığı için uçağı IŞINLAMALI)
-                            _planeLon -= 0.01; 
-                            _planeLat -= 0.01;
+                            _planeLon -= 0.05; //hız limitini aşabilmek için fazla sapması gerekiyor yaklaşık (7km)7000m / 1.5s = 4666 m/s hız limitini aşar
+                            _planeLat -= 0.05;
                         }
                         
+                        // BREAK! Aşağıdaki SendAsync ve plSpd / plH hesaplama kodlarına HİÇ DOKUNMUYORSUN.
+                        break;
+
+                    case 9: // TEST 5: VİRAJDA GLITCH VE SONRASINDA UZAĞA IŞINLANIP DÜZ UÇMA
+                        double radius3 = 0.01;
+                        double angularSpeed3 = 0.2;
+
+                        if (_simTime < 20.0)
+                        {
+                            // 1. AŞAMA: VİRAJDA UÇUŞ (İlk 20 saniye)
+                            double currentAngle3 = _simTime * angularSpeed3;
+                            _planeLon = _shipLon + Math.Cos(currentAngle3) * radius3;
+                            _planeLat = _shipLat + Math.Sin(currentAngle3) * radius3;
+
+                            // 10. ile 11. saniyeler arası GEÇİCİ GLITCH (Sensör Çıldırması)
+                            // Beklenti: Uçak bu 1 saniyelik bozuk veriyi reddedip viraj kavisini hayali olarak döner.
+                            if (_simTime >= 10.0 && _simTime <= 11.0)
+                            {
+                                _planeLon += 0.01;
+                                _planeLat += 0.01;
+                            }
+                        }
+                        /*
+                        else
+                        {
+                            // 2. AŞAMA: 20. SANİYEDEN SONRA YENİ ROTAYA IŞINLANMA VE DÜZ UÇUŞ
+                            // Uçak artık viraj dönmeyi bırakır.
+
+                            // 20. saniyeden sonra geçen zaman sayacı
+                            double dtAfter20 = _simTime - 20.0;
+
+                            // Uçağın ışınlanacağı, virajla alakası olmayan bambaşka bir başlangıç noktası (~7km ötede)
+                            double teleportLon = _shipLon - 0.05;
+                            double teleportLat = _shipLat - 0.05;
+
+                            // Uçak o uzak noktadan itibaren kuzey-doğu yönünde düz bir çizgi halinde uçar
+                            _planeLon = teleportLon + (dtAfter20 * 0.00015 * 20); // Düz ilerleme hızı
+                            _planeLat = teleportLat + (dtAfter20 * 0.00015 * 20);
+                        }
+                        */
+                        else
+                        {
+                            // 2. AŞAMA: 20. SANİYEDEN SONRA YENİ ROTAYA IŞINLANMA VE DÜZ UÇUŞ
+                            double dtAfter20 = _simTime - 20.0;
+                            
+                            // 1. Gemiyi unut. Uçağın tam 20. saniyede virajı nerede bitirdiğini (kopma noktasını) bul.
+                            double breakAngle = 20.0 * angularSpeed3;
+                            double breakLon = _shipLon + Math.Cos(breakAngle) * radius3;
+                            double breakLat = _shipLat + Math.Sin(breakAngle) * radius3;
+                            
+                            // 2. Işınlanma noktasını bu kopma noktasına göre belirle (7 km uzağa fırlat)
+                            // (Güneydoğuya ışınlama) : Boylamı (X) artırıyoruz, Enlemi (Y) azaltıyoruz.
+                            double teleportLon = breakLon + 0.05;
+                            double teleportLat = breakLat - 0.05;
+                            
+                            // 3. Uçak o yeni noktadan itibaren ok gibi düz ilerler (~418 m/s güvenli hızda)
+                            _planeLon = teleportLon + (dtAfter20 * 0.00015 * 20); 
+                            _planeLat = teleportLat - (dtAfter20 * 0.00015 * 20);
+                        }
+
+                        _planeAlt = 1500;
+
                         // BREAK! Aşağıdaki SendAsync ve plSpd / plH hesaplama kodlarına HİÇ DOKUNMUYORSUN.
                         break;
 

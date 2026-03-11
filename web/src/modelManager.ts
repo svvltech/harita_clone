@@ -192,11 +192,40 @@ export const addLandingPlane = (): void => {
                     if (currentPos) {
                         // Bir önceki noktaya çok yakınsa kaydetme (gereksiz yükü önler)
                         const lastPos = planeHistory[planeHistory.length - 1];
+                        /*
                         if (!lastPos || Cesium.Cartesian3.distance(lastPos, currentPos) > 1.0) {
                             planeHistory.push(Cesium.Cartesian3.clone(currentPos));
                             // Bellek yönetimi: Son 200 noktayı tut (yaklaşık 1.5 - 2 dakika)
                             if (planeHistory.length > 200) planeHistory.shift();
                         }
+                        */
+                        if (!lastPos) {
+                            planeHistory.push(Cesium.Cartesian3.clone(currentPos));
+                        } else {
+                            // 1. İki nokta arasındaki mesafeyi bul
+                            const dist = Cesium.Cartesian3.distance(lastPos, currentPos);
+                            // 2. Geçen süreyi saniyeye çevir
+                            const dtSec = (now - lastRecordTime) / 1000.0;
+                            // 3. Bu noktanın çizilme hızını (m/s) hesapla
+                            const currentDrawSpeed = dist / dtSec;
+                            
+                            // ════════════════════════════════════════════════════
+                            // DİNAMİK KONTROL: Taşıtın kendi profil sınırını kullan
+                            // ════════════════════════════════════════════════════
+                            const jumpLimit = PLANE_LIMITS.maxJumpDistancePerSecond || 1000;
+
+                            if (currentDrawSpeed > jumpLimit) {
+                                // Çizim hızı fiziksel limiti aştı, bu bir ışınlanmadır!
+                                planeHistory.length = 0; // Geçmişi sil, bağı kopar
+                                planeHistory.push(Cesium.Cartesian3.clone(currentPos));  // Yeni noktadan iz bırakmaya başla
+                            } 
+                            else if (dist > 0.5) {
+                                // Normal hızda uçuş, noktayı ekle
+                                planeHistory.push(Cesium.Cartesian3.clone(currentPos));
+                                if (planeHistory.length > 200) planeHistory.shift();
+                            }
+                        }                      
+                        
                     }
                     lastRecordTime = now;
                 }
