@@ -472,6 +472,49 @@ export class MovementEngine {
         return true;
     }
 
+
+
+    /**
+     * Uçağı anında yeni bir konuma ve yöne ışınlar.
+     * this.currentVisualPos ve this.currentVisualQuat'ı günceller.
+     * Yumuşatma (smoothing) ve tahmini (prediction) devre dışı bırakır.
+    */
+    private forceSync(lon: number, lat: number, alt: number, h: number, p: number, r: number) {
+        // 1. Sadece GÖRSEL durumu anında eşitle (Işınlanma efekti için)
+        const posEcef = Cesium.Cartesian3.fromDegrees(lon, lat, alt, Cesium.Ellipsoid.WGS84, MovementEngine._sNewPos);
+        Cesium.Cartesian3.clone(posEcef, this.currentVisualPos);
+        
+        const quat = this.calculateQuaternion(posEcef, h, p, r);
+        Cesium.Quaternion.clone(quat, this.currentVisualQuat);
+
+        // 2. TAHMİN MOTORUNU SIFIRLA
+        // packetCount'u 0 yapmak, getLatestPosition içindeki 'if (packetCount >= 2)' 
+        // kontrolü sayesinde yeni paketler gelene kadar hatalı tahmin yapılmasını engeller.
+        this.packetCount = 0;
+
+        console.log(`[MovementEngine] Işınlanma tamamlandı: ${lon.toFixed(5)}, ${lat.toFixed(5)}`);
+    }
+
+    /**
+    * Belirli bir konum ve HPR açısı için Cesium Quaternion üretir.
+    * Scratchpad kullanarak bellek yönetimini optimize eder.
+    */
+    private calculateQuaternion(position: Cesium.Cartesian3, h: number, p: number, r: number): Cesium.Quaternion {
+        const hpr = MovementEngine._sHpr;
+        hpr.heading = h + this.rotationOffset;
+        hpr.pitch = p;
+        hpr.roll = r;
+
+        // Cesium'un yerel ENU (East-North-Up) çerçevesinden dünya çerçevesine dönüşüm
+        return Cesium.Transforms.headingPitchRollQuaternion(
+            position,
+            hpr,
+            Cesium.Ellipsoid.WGS84,
+            Cesium.Transforms.eastNorthUpToFixedFrame,
+            MovementEngine._sNewQuat // Mevcut scratchpad'i kullanıyoruz
+        );
+    }
+
     /**
      * Uçağı anında yeni bir konuma ve yöne ışınlar.
      * this.currentVisualPos ve this.currentVisualQuat'ı günceller.
@@ -496,47 +539,6 @@ export class MovementEngine {
         this.packetCount = 0;
 
         console.log(`[MovementEngine] Işınlanma tamamlandı: ${lon.toFixed(5)}, ${lat.toFixed(5)}`);
-    }
-
-    /**
-     * Uçağı anında yeni bir konuma ve yöne ışınlar.
-     * this.currentVisualPos ve this.currentVisualQuat'ı günceller.
-     * Yumuşatma (smoothing) ve tahmini (prediction) devre dışı bırakır.
-    */
-    private forceSync(lon: number, lat: number, alt: number, h: number, p: number, r: number) {
-        // 1. Sadece GÖRSEL durumu anında eşitle (Işınlanma efekti için)
-        const posEcef = Cesium.Cartesian3.fromDegrees(lon, lat, alt, Cesium.Ellipsoid.WGS84, MovementEngine._sNewPos);
-        Cesium.Cartesian3.clone(posEcef, this.currentVisualPos);
-        
-        const quat = this.calculateQuaternion(posEcef, h, p, r);
-        Cesium.Quaternion.clone(quat, this.currentVisualQuat);
-
-        // 2. TAHMİN MOTORUNU SIFIRLA
-        // packetCount'u 0 yapmak, getLatestPosition içindeki 'if (packetCount >= 2)' 
-        // kontrolü sayesinde yeni paketler gelene kadar hatalı tahmin yapılmasını engeller.
-        this.packetCount = 0;
-
-        console.log(`[MovementEngine] Işınlanma tamamlandı: ${lon.toFixed(5)}, ${lat.toFixed(5)}`);
-    }
-
-    /**
-     * Belirli bir konum ve HPR açısı için Cesium Quaternion üretir.
-     * Scratchpad kullanarak bellek yönetimini optimize eder.
-     */
-    private calculateQuaternion(position: Cesium.Cartesian3, h: number, p: number, r: number): Cesium.Quaternion {
-        const hpr = MovementEngine._sHpr;
-        hpr.heading = h + this.rotationOffset;
-        hpr.pitch = p;
-        hpr.roll = r;
-
-        // Cesium'un yerel ENU (East-North-Up) çerçevesinden dünya çerçevesine dönüşüm
-        return Cesium.Transforms.headingPitchRollQuaternion(
-            position,
-            hpr,
-            Cesium.Ellipsoid.WGS84,
-            Cesium.Transforms.eastNorthUpToFixedFrame,
-            MovementEngine._sNewQuat // Mevcut scratchpad'i kullanıyoruz
-        );
     }
 
 }

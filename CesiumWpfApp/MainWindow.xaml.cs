@@ -36,7 +36,7 @@ namespace CesiumWpfApp
 
         // Uçak test modu (mevcut switch ile aynı)
         // 0 = Spiral iniş, 1 = Düz çizgi, 2 = Sabit daire
-        private int _planeMovementMode = 6;
+        private int _planeMovementMode = 11;
 
         // ═══════════════════════════════════════════════════════════════
         // SİMÜLASYON VERİLERİ (başlangıç konumları)
@@ -222,31 +222,95 @@ namespace CesiumWpfApp
                         break;
 
                     case 9: // TEST 5: VİRAJDA (DÖNÜŞTE) OUTLIER VE KESİNTİ TESTİ
-                        // 1. Kusursuz rotayı sadece zamana (_simTime) bağlı olarak hesapla
-                        double radius1 = 0.02; 
-                        double angularSpeed = 0.5; 
+                        // 1. C# simülasyonunda uçağın hız limiti 600m/s. 
+                        // Limite takılmamak için hızı ~200 m/s olan güvenli bir daire çizelim.
+                        double radius1 = 0.01; // Yaklaşık 1.1 km
+                        double angularSpeed = 0.2; // Saniyede 0.2 radyan
                         double currentAngle = _simTime * angularSpeed;
 
-                        // Normal değişkenlerimize atamamızı yapıyoruz (Aşağıdaki SendAsync bunu kullanacak)
-                        _planeLon = 35.0 + Math.Cos(currentAngle) * radius1; 
-                        _planeLat = 39.0 + Math.Sin(currentAngle) * radius1; 
+                        // _shipLon ve _shipLat merkezli dönelim ki uçak haritadan kaybolmasın
+                        _planeLon = _shipLon + Math.Cos(currentAngle) * radius1; 
+                        _planeLat = _shipLat + Math.Sin(currentAngle) * radius1; 
                         _planeAlt = 1500;
 
-                        // 2. Sadece belirli saniyelerde ana değişkenlerin içindeki veriyi "zehirliyoruz"
-                        // Zaman aralığı bitince _simTime yukarıda doğru konumu zaten tekrar verecek.
+                        // 2. Geçici ve Kalıcı Hata Testleri (Glitch & Lag)
+                        // Sadece bu saniye aralıklarında uçak ana rotasından sapar.
+                        // Aralık bitince üstteki matematik uçağı otomatik olarak asıl yerine koyar.
                         if (_simTime >= 10.0 && _simTime <= 11.0)
                         {
-                            _planeLon += 0.01; // 1 saniyelik geçici hata
+                            // 1 Saniyelik Geçici Hata (Işınlanma OLMAMALI, uçak virajı dönmeye devam etmeli)
+                            _planeLon += 0.01; 
                             _planeLat += 0.01;
                         }
                         else if (_simTime >= 20.0 && _simTime <= 23.0)
                         {
-                            _planeLon -= 0.01; // 3 saniyelik kalıcı hata
+                            // 3 Saniyelik Kalıcı Hata (Süre 1.5 sn'yi aştığı için uçağı IŞINLAMALI)
+                            _planeLon -= 0.01; 
                             _planeLat -= 0.01;
                         }
                         
-                        // BREAK! Aşağıdaki SendAsync ve hız hesaplama kodlarına HİÇ DOKUNMUYORSUN.
+                        // BREAK! Aşağıdaki SendAsync ve plSpd / plH hesaplama kodlarına HİÇ DOKUNMUYORSUN.
                         break;
+
+
+                    case 10: // TEST 6: VİRAJDA KOPMA VE DÜZ UÇUŞA GEÇİŞ (Tangent Breakout)
+                        double radius2 = 0.01;
+                        double angularSpeed1 = 0.2;
+
+                        if (_simTime < 20.0)
+                        {
+                            // 1. AŞAMA: İLK 20 SANİYE KUSURSUZ VİRAJ
+                            double currentAngle1 = _simTime * angularSpeed1;
+                            _planeLon = _shipLon + Math.Cos(currentAngle1) * radius2;
+                            _planeLat = _shipLat + Math.Sin(currentAngle1) * radius2;
+                        }
+                        else
+                        {
+                            // 2. AŞAMA: 20. SANİYEDEN İTİBAREN DÜZ UÇUŞ (Virajdan Çıkış)
+                            double breakAngle = 20.0 * angularSpeed1; // Kopma anındaki açı (4.0 radyan)
+                            
+                            // Uçağın 20. saniyedeki tam konumu (Kopma Noktası)
+                            double breakLon = _shipLon + Math.Cos(breakAngle) * radius2;
+                            double breakLat = _shipLat + Math.Sin(breakAngle) * radius2;
+                            
+                            // 20. saniyedeki hızı ve yönü (Dairenin teğet vektörü / Türev)
+                            double vLon = -Math.Sin(breakAngle) * radius2 * angularSpeed1;
+                            double vLat =  Math.Cos(breakAngle) * radius2 * angularSpeed1;
+                            
+                            // 20. saniyeden sonra geçen süre
+                            double dtStraight = _simTime - 20.0;
+                            
+                            // Teğet üzerinde düz bir çizgi şeklinde ilerleme
+                            _planeLon = breakLon + (vLon * dtStraight);
+                            _planeLat = breakLat + (vLat * dtStraight);
+                        }
+                        _planeAlt = 1500;
+
+                        // 3. RADAR BOZULMASI (20. ile 23. saniye arası sahte veri gönderilir)
+                        // Tam pilot düz uçuşa geçtiği anda ekran kararır/bozulur!
+                        if (_simTime >= 20.0 && _simTime <= 23.0)
+                        {
+                            _planeLon -= 0.01; 
+                            _planeLat -= 0.01;
+                        }
+                        break;
+
+
+                    case 11: // TEST : GERÇEK IŞINLANMA TESTİ (Büyük Sıçrama)
+                            // Normal hızda düz gidiyor
+                        _planeLon += 0.0003 * SIM_TICK * 20;
+                        _planeLat += 0.0001 * SIM_TICK * 20;
+                        _planeAlt = 1000;
+
+                        // Her 10 saniyede bir, uçağı aniden 0.05 derece (~5.5 KM) ileri fırlat.
+                        // (Önceki 0.01 uçağın hızıyla kapanabiliyordu, 0.05 kapanamaz, kesin ışınlar).
+                        if (Math.Abs(_simTime % 10.0) < SIM_TICK && _simTime > 1.0)
+                        {
+                            _planeLon += 0.05;
+                            _planeLat += 0.05;
+                        }
+                        break;
+
                     default: // SPİRALDEN SABİT YÖRÜNGE (İniş yerine belirli bir irtifada dönme)
                         double startAlt = 300.0;
                         double targetAlt = 100.0; // Bu irtifada durup sadece dönecek
