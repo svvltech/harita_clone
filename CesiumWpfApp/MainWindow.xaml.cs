@@ -36,7 +36,7 @@ namespace CesiumWpfApp
 
         // Uçak test modu (mevcut switch ile aynı)
         // 0 = Spiral iniş, 1 = Düz çizgi, 2 = Sabit daire
-        private int _planeMovementMode = 9;
+        private int _planeMovementMode = 20;
 
         // ═══════════════════════════════════════════════════════════════
         // SİMÜLASYON VERİLERİ (başlangıç konumları)
@@ -61,6 +61,9 @@ namespace CesiumWpfApp
         private double _planeLon = 26.4485; // 26.445;
         private double _planeLat = 40.5385; // 40.535;
         private double _planeAlt = 300; //500;
+
+        // Timeout test case'leri için: true iken uçak paketi gönderilmez (veri kesintisi simülasyonu)
+        private bool _suppressPlanePacket = false;
 
         // Son gönderim zamanları (ms) — paket gönderim kontrolü için
         private long _lastShipSend = 0;
@@ -221,7 +224,7 @@ namespace CesiumWpfApp
                         _planeAlt = 2000;
                         break;
 
-                    case 19: // TEST 5: VİRAJDA (DÖNÜŞTE) OUTLIER VE KESİNTİ TESTİ
+                    case 119: // TEST 5: VİRAJDA (DÖNÜŞTE) OUTLIER VE KESİNTİ TESTİ
                         // 1. C# simülasyonunda uçağın hız limiti 600m/s. 
                         // Limite takılmamak için hızı ~200 m/s olan güvenli bir daire çizelim.
                         double radius1 = 0.01; // Yaklaşık 1.1 km
@@ -376,6 +379,220 @@ namespace CesiumWpfApp
                         }
                         break;
 
+                    case 12: // TIMEOUT TEST 1: KISA KESİNTİ (5 sn boşluk, timeout OLMAMALI)
+                        // Uçak düz gidiyor.
+                        _planeLon += 0.0003 * SIM_TICK * 20;
+                        _planeLat += 0.0001 * SIM_TICK * 20;
+                        _planeAlt = 1000;
+
+                        // 10. ile 15. saniyeler arası: Paket gönderimini kapat (5 saniyelik veri kesintisi).
+                        // Beklenti: Ekstrapolasyon devam eder, 15. saniyede veri gelince süzülerek yetişir.
+                        // ForceSync OLMAMALI (5 sn < 15 sn timeout).
+                        _suppressPlanePacket = (_simTime >= 10.0 && _simTime <= 15.0);
+                        break;
+
+                    case 13: // TIMEOUT TEST 2: UZUN KESİNTİ (14 sn boşluk, timeout OLMAMALI)
+                        // Uçak düz gidiyor.
+                        _planeLon += 0.0003 * SIM_TICK * 20;
+                        _planeLat += 0.0001 * SIM_TICK * 20;
+                        _planeAlt = 1000;
+
+                        // 10. ile 24. saniyeler arası: 14 saniyelik veri kesintisi.
+                        // Beklenti: Ekstrapolasyon 14 sn boyunca devam eder.
+                        // 24. saniyede veri gelince turnRate/vz sıfırlanır (3 sn kuralı), süzülerek yetişir.
+                        // ForceSync OLMAMALI (14 sn < 15 sn timeout).
+                        _suppressPlanePacket = (_simTime >= 10.0 && _simTime <= 24.0);
+                        break;
+
+                    case 14: // TIMEOUT TEST 3: ZAMAN AŞIMI (17 sn boşluk, forceSync OLMALI)
+                        // Uçak düz gidiyor.
+                        _planeLon += 0.0003 * SIM_TICK * 20;
+                        _planeLat += 0.0001 * SIM_TICK * 20;
+                        _planeAlt = 1000;
+
+                        // 10. ile 27. saniyeler arası: 17 saniyelik veri kesintisi.
+                        // Beklenti: Ekstrapolasyon 15. saniyeye kadar devam eder, sonra durur.
+                        // 27. saniyede veri gelince dtPacket > 15 → forceSync tetiklenir.
+                        // Uçak anında yeni konuma ışınlanır.
+                        _suppressPlanePacket = (_simTime >= 10.0 && _simTime <= 27.0);
+                        break;
+                    // ═══════════════════════════════════════════════════════════════
+                    // KISA KESİNTİ TESTLERİ (5 sn boşluk) — Hafif, Gerçekçi Değişimler
+                    // ═══════════════════════════════════════════════════════════════
+
+                    case 15: // KISA KESİNTİ 1: DÜZ → 5sn gap → HAFİF VİRAJ BAŞLANGICI
+                        // Uçak düz gidiyor, 5 sn kesinti, dönünce hafifçe sola kıvrılmaya başlamış.
+                        // Gerçekçi: 5 saniyede bir uçak viraj başlatabilir.
+                        // Beklenti: Motor düz ekstrapolasyon yapar, veri gelince hafif farkı süzüp yakalar.
+                        {
+                            if (_simTime < 10.0)
+                            {
+                                // Faz 1: Tamamen düz uçuş
+                                _planeLon += 0.0003 * SIM_TICK * 20;
+                                _planeLat += 0.0001 * SIM_TICK * 20;
+                            }
+                            else
+                            {
+                                // Faz 2 (kesinti dahil): Yavaşça sola kıvrılmaya başlıyor
+                                // turnRate = 0.05 rad/s → 5 sn'de ~14° dönüş (çok hafif)
+                                double dt15 = _simTime - 10.0;
+                                double heading15 = 0.32175 + (0.05 * dt15); // Başlangıç heading + yavaş dönüş
+                                double spd15 = 200.0; // m/s
+                                double dLon15 = Math.Sin(heading15) * spd15 * SIM_TICK / (111320 * Math.Cos(_planeLat * Math.PI / 180));
+                                double dLat15 = Math.Cos(heading15) * spd15 * SIM_TICK / 110540;
+                                _planeLon += dLon15;
+                                _planeLat += dLat15;
+                            }
+                            _planeAlt = 1000;
+                            _suppressPlanePacket = (_simTime >= 10.0 && _simTime <= 15.0);
+                        }
+                        break;
+
+                    case 16: // KISA KESİNTİ 2: DÖNÜŞ → 5sn gap → AYNI DÖNÜŞE DEVAM
+                        // En yaygın senaryo: Uçak virajda, veri kesildi, aynı virajda devam.
+                        // Beklenti: Motor dönüş ekstrapolasyonu yapar, veri gelince neredeyse birebir eşleşir.
+                        {
+                            double r16 = 0.01; // ~1.1 km yarıçap
+                            double w16 = 0.2;  // ~200 m/s daire hızı
+                            double t16 = _simTime * w16;
+                            _planeLon = _shipLon + Math.Cos(t16) * r16;
+                            _planeLat = _shipLat + Math.Sin(t16) * r16;
+                            _planeAlt = 1000;
+                            _suppressPlanePacket = (_simTime >= 10.0 && _simTime <= 15.0);
+                        }
+                        break;
+
+                    case 17: // KISA KESİNTİ 3: DÖNÜŞ → 5sn gap → TEĞET ÇIKIŞ (Düzleşme)
+                        // Uçak virajda, 5 sn kesinti, sonra virajdan yavaşça çıkıp düzleşiyor.
+                        // Gerçekçi: Pilot virajdan çıkar, teğet yönde devam eder.
+                        // Beklenti: Motor dönüş tahminine devam eder, veri gelince kavisin düzleştiğini görür.
+                        {
+                            double r18 = 0.01;
+                            double w18 = 0.2;
+                            if (_simTime < 15.0)
+                            {
+                                // DAİRE (0-15 sn, kesinti 10-15 arası)
+                                double t18 = _simTime * w18;
+                                _planeLon = _shipLon + Math.Cos(t18) * r18;
+                                _planeLat = _shipLat + Math.Sin(t18) * r18;
+                            }
+                            else
+                            {
+                                // 15. saniyede daireden TEĞET çıkış (düz uçuş)
+                                double breakAngle18 = 15.0 * w18;
+                                double breakLon18 = _shipLon + Math.Cos(breakAngle18) * r18;
+                                double breakLat18 = _shipLat + Math.Sin(breakAngle18) * r18;
+                                double vLon18 = -Math.Sin(breakAngle18) * r18 * w18;
+                                double vLat18 = Math.Cos(breakAngle18) * r18 * w18;
+                                double dt18 = _simTime - 15.0;
+                                _planeLon = breakLon18 + vLon18 * dt18;
+                                _planeLat = breakLat18 + vLat18 * dt18;
+                            }
+                            _planeAlt = 1000;
+                            _suppressPlanePacket = (_simTime >= 10.0 && _simTime <= 15.0);
+                        }
+                        break;
+
+                    // ═══════════════════════════════════════════════════════════════
+                    // UZUN KESİNTİ TESTLERİ (14-17 sn boşluk) — Dramatik, Ama Gerçekçi
+                    // 14 sn = timeout yok, 17 sn = forceSync
+                    // ═══════════════════════════════════════════════════════════════
+
+                    case 18: // UZUN KESİNTİ 1: DÜZ → 14sn gap → DÖNÜŞ
+                        // Uçak düz gidiyordu, 14 sn veri kesildi, veri geldiğinde artık daire çiziyor.
+                        // 14 sn'de rota değişimi tamamen makul (pilot emri, waypoint vs.)
+                        // Beklenti: Motor 14 sn boyunca düz ekstrapolasyon yapar (epey uzaklaşır).
+                        //           Veri gelince büyük fark var ama forceSync YOK (14<15).
+                        //           Süzülerek yeni rotaya adapte olur.
+                        {
+                            if (_simTime < 10.0)
+                            {
+                                // Faz 1: Düz uçuş
+                                _planeLon += 0.0003 * SIM_TICK * 20;
+                                _planeLat += 0.0001 * SIM_TICK * 20;
+                            }
+                            else
+                            {
+                                // Faz 2: 10. saniyeden itibaren daire çiziyor (ama paket 24. sn'ye kadar yok)
+                                double r17 = 0.008;
+                                double w17 = 0.15; // Yavaş dönüş (~150 m/s)
+                                double center17Lon = _shipLon + 0.025; // Son düz konuma yakın bir merkez
+                                double center17Lat = _shipLat + 0.005;
+                                double t17 = (_simTime - 10.0) * w17;
+                                _planeLon = center17Lon + Math.Cos(t17) * r17;
+                                _planeLat = center17Lat + Math.Sin(t17) * r17;
+                            }
+                            _planeAlt = 1000;
+                            // 14 saniyelik kesinti (10-24 arası)
+                            _suppressPlanePacket = (_simTime >= 10.0 && _simTime <= 24.0);
+                        }
+                        break;
+
+                    case 19: // UZUN KESİNTİ 2: DÖNÜŞ → 17sn gap → TERS DÖNÜŞ (ForceSync!)
+                        // Uçak saat yönünde dönerken 17 sn veri kesildi.
+                        // Veri geldiğinde artık saat yönü tersine dönüyor.
+                        // 17 sn'de yön değişimi tamamen makul.
+                        // Beklenti: 15 sn'ye kadar ekstrapolasyon(saat yönü), sonra durur.
+                        //           27. sn'de veri gelince dtPacket > 15 → ForceSync tetiklenir.
+                        //           Uçak anında yeni konuma ışınlanır.
+                        {
+                            double r20 = 0.01;
+                            double w20 = 0.2;
+                            if (_simTime < 10.0)
+                            {
+                                // Saat yönünde daire
+                                double t20 = _simTime * w20;
+                                _planeLon = _shipLon + Math.Cos(t20) * r20;
+                                _planeLat = _shipLat + Math.Sin(t20) * r20;
+                            }
+                            else
+                            {
+                                // 10. saniyeden itibaren ters yöne dönüş
+                                double startAngle20 = 10.0 * w20; // Kopma açısı (2.0 rad)
+                                double dt20 = _simTime - 10.0;
+                                double t20 = startAngle20 - (dt20 * w20); // Ters yön
+                                _planeLon = _shipLon + Math.Cos(t20) * r20;
+                                _planeLat = _shipLat + Math.Sin(t20) * r20;
+                            }
+                            _planeAlt = 1000;
+                            // 17 saniyelik kesinti → forceSync testi
+                            _suppressPlanePacket = (_simTime >= 10.0 && _simTime <= 27.0);
+                        }
+                        break;
+
+                    case 20: // UZUN KESİNTİ 3: TIRMANMA → 14sn gap → DALIŞ
+                        // Uçak tırmanıyordu (10 m/s dikey), 14 sn veri kesildi.
+                        // Veri geldiğinde artık dalış yapıyor (-15 m/s dikey).
+                        // 14 sn'de irtifa manevra değişimi tamamen makul.
+                        // Beklenti: Motor tırmanma ekstrapolasyonu yapar, veri gelince irtifayı süzüp yakalar.
+                        {
+                            _planeLon += 0.0002 * SIM_TICK * 20;
+                            _planeLat += 0.0001 * SIM_TICK * 20;
+
+                            if (_simTime < 10.0)
+                            {
+                                // Tırmanma: 10 m/s (gerçekçi)
+                                _planeAlt = 500 + (_simTime * 10);
+                            }
+                            else if (_simTime < 20.0)
+                            {
+                                // 10-20 sn: Tırmanma devam ama yavaşlıyor, 15. sn'de zirve
+                                double dt21 = _simTime - 10.0;
+                                _planeAlt = 600 + (50 * dt21) - (2.5 * dt21 * dt21); // Parabolik zirve
+                            }
+                            else
+                            {
+                                // 20+ sn: Dalış (-15 m/s dikey → gerçekçi)
+                                double peak21 = 600 + (50 * 10) - (2.5 * 100); // ~850m zirve
+                                _planeAlt = peak21 - ((_simTime - 20.0) * 15);
+                            }
+
+                            if (_planeAlt < 100) _planeAlt = 100;
+                            // 14 saniyelik kesinti
+                            _suppressPlanePacket = (_simTime >= 10.0 && _simTime <= 24.0);
+                        }
+                        break;
+
                     default: // SPİRALDEN SABİT YÖRÜNGE (İniş yerine belirli bir irtifada dönme)
                         double startAlt = 300.0;
                         double targetAlt = 100.0; // Bu irtifada durup sadece dönecek
@@ -435,8 +652,8 @@ namespace CesiumWpfApp
                     _lastDeckSend = now;
                 }
 
-                // UÇAK PAKETİ
-                if (now - _lastPlaneSend >= _planeSendMs)
+                // UÇAK PAKETİ (suppressPlanePacket aktifken paket gönderilmez — timeout testi için)
+                if (!_suppressPlanePacket && now - _lastPlaneSend >= _planeSendMs)
                 {
                     double dtPlane = (now - _lastPlaneSend) / 1000.0;
                     double plVx = ((_planeLon - _prevPlaneLon) * 111320 * Math.Cos(_planeLat * Math.PI / 180)) / dtPlane;

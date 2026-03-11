@@ -54,7 +54,65 @@ viewer?.scene.preUpdate.addEventListener(() => {
     shipEngine?.updateFrameTime();
     planeEngine?.updateFrameTime();
     deckEngine?.updateFrameTime();
+
+    // --- DEBUG HUD GÜNCELLEME ---
+    if (planeEngine) {
+        updateDebugHud(planeEngine.getDebugInfo());
+    }
 });
+
+// --- DEBUG HUD OVERLAY ---
+let debugHudEl: HTMLDivElement | null = null;
+
+function updateDebugHud(info: { timeSincePacket: number; speed: number; packetCount: number; status: string }) {
+    if (!debugHudEl) {
+        debugHudEl = document.createElement("div");
+        debugHudEl.id = "debug-hud";
+        debugHudEl.style.cssText = `
+            position: fixed;
+            top: 10px;
+            right: 10px;
+            background: rgba(0, 0, 0, 0.75);
+            color: #fff;
+            font-family: 'Consolas', 'Courier New', monospace;
+            font-size: 13px;
+            padding: 10px 14px;
+            border-radius: 8px;
+            z-index: 99999;
+            pointer-events: none;
+            line-height: 1.6;
+            min-width: 220px;
+            border: 1px solid rgba(255,255,255,0.15);
+        `;
+        document.body.appendChild(debugHudEl);
+    }
+
+    const t = info.timeSincePacket.toFixed(1);
+    const spd = info.speed.toFixed(1);
+
+    // Renk: 0-3s yeşil, 3-15s sarı, 15+s kırmızı
+    const barMax = 15;
+    const barPct = Math.min(info.timeSincePacket / barMax, 1.0) * 100;
+    const barColor = info.timeSincePacket > 15 ? "#ff4444" : info.timeSincePacket > 3 ? "#ffaa00" : "#44ff44";
+
+    // Durum renkli göstergesi
+    let statusColor = "#888";
+    let statusLabel = info.status;
+    if (info.status === "VERI_ALINIYOR") { statusColor = "#44ff44"; statusLabel = "VERI ALINIYOR"; }
+    else if (info.status === "UZUN_BOSLUK") { statusColor = "#ffaa00"; statusLabel = "UZUN BOSLUK"; }
+    else if (info.status === "TIMEOUT") { statusColor = "#ff4444"; statusLabel = "TIMEOUT - VERI YOK"; }
+    else if (info.status === "ILK_PAKET") { statusColor = "#aaa"; statusLabel = "ILK PAKET BEKLENIYOR"; }
+
+    debugHudEl.innerHTML = `
+        <div style="margin-bottom:4px;"><span style="display:inline-block;width:10px;height:10px;border-radius:50%;background:${statusColor};margin-right:6px;"></span><b>${statusLabel}</b></div>
+        <div>Son Paket: <b style="color:${barColor}">${t}s</b> once</div>
+        <div>Hiz: <b>${spd} m/s</b></div>
+        <div>Paket #${info.packetCount}</div>
+        <div style="margin-top:6px; background:rgba(255,255,255,0.15); border-radius:4px; height:6px; overflow:hidden;">
+            <div style="width:${barPct}%; height:100%; background:${barColor}; transition: width 0.2s;"></div>
+        </div>
+    `;
+}
 
 /**
  * SignalR'dan gelen tüm güncellemeleri yöneten ana fonksiyon.
