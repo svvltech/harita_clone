@@ -61,7 +61,6 @@ export class MovementEngine {
     // VERİ ZAMAN AŞIMI: 15 saniye boyunca veri gelmezse ekstrapolasyon durur.
     // 15 saniye sonra gelen veri forceSync ile aracı yeni konumdan başlatır.
     // 15 saniye içinde gelen veri normal kabul edilir, süzülerek yetişir.
-    private readonly DATA_TIMEOUT_SEC = 15.0;
     private readonly PREDICTION_MAX_SEC = 15.0; // Ekstrapolasyon da 15 saniyeye kadar devam eder
     
     private readonly MAX_CORRECTION_PER_SEC = 100; // DIS Convergence: max düzeltme hızı (m/s)
@@ -155,7 +154,7 @@ export class MovementEngine {
         // UZUN BOŞLUK KONTROLÜ (Timeout sonrası ilk paket)
         const dtPacket = (previousServerTime > 0) ? (serverTimestamp - previousServerTime) / 1000 : 0;
 
-        if (dtPacket > this.DATA_TIMEOUT_SEC) {
+        if (dtPacket > this.PREDICTION_MAX_SEC) {
             // 15 saniyeden uzun süre veri gelmemiş → aracı yeni konumdan başlat
             console.log(`[MovementEngine] ${dtPacket.toFixed(1)}s veri boşluğu → ForceSync yapılıyor.`);
             this.forceSync(lon, lat, alt, speed, h, p, r);
@@ -244,7 +243,7 @@ export class MovementEngine {
         let status = "BEKLENIYOR";
         if (this.lastServerTime === 0) {
             status = "ILK_PAKET";
-        } else if (timeSincePacket > this.DATA_TIMEOUT_SEC) {
+        } else if (timeSincePacket > this.PREDICTION_MAX_SEC) {
             status = "TIMEOUT";
         } else if (timeSincePacket > 3.0) {
             status = "UZUN_BOSLUK";
