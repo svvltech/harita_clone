@@ -36,7 +36,7 @@ namespace CesiumWpfApp
 
         // Uçak test modu (mevcut switch ile aynı)
         // 0 = Spiral iniş, 1 = Düz çizgi, 2 = Sabit daire
-        private int _planeMovementMode = 8;
+        private int _planeMovementMode = 6;
 
         // ═══════════════════════════════════════════════════════════════
         // SİMÜLASYON VERİLERİ (başlangıç konumları)
@@ -219,6 +219,33 @@ namespace CesiumWpfApp
                         // Yüksek hızlarda sapma olup olmadığını görmek için hafifçe kuzeye de kaysın
                         _planeLat += dLon8 * 0.1; 
                         _planeAlt = 2000;
+                        break;
+
+                    case 9: // TEST 5: VİRAJDA (DÖNÜŞTE) OUTLIER VE KESİNTİ TESTİ
+                        // 1. Kusursuz rotayı sadece zamana (_simTime) bağlı olarak hesapla
+                        double radius1 = 0.02; 
+                        double angularSpeed = 0.5; 
+                        double currentAngle = _simTime * angularSpeed;
+
+                        // Normal değişkenlerimize atamamızı yapıyoruz (Aşağıdaki SendAsync bunu kullanacak)
+                        _planeLon = 35.0 + Math.Cos(currentAngle) * radius1; 
+                        _planeLat = 39.0 + Math.Sin(currentAngle) * radius1; 
+                        _planeAlt = 1500;
+
+                        // 2. Sadece belirli saniyelerde ana değişkenlerin içindeki veriyi "zehirliyoruz"
+                        // Zaman aralığı bitince _simTime yukarıda doğru konumu zaten tekrar verecek.
+                        if (_simTime >= 10.0 && _simTime <= 11.0)
+                        {
+                            _planeLon += 0.01; // 1 saniyelik geçici hata
+                            _planeLat += 0.01;
+                        }
+                        else if (_simTime >= 20.0 && _simTime <= 23.0)
+                        {
+                            _planeLon -= 0.01; // 3 saniyelik kalıcı hata
+                            _planeLat -= 0.01;
+                        }
+                        
+                        // BREAK! Aşağıdaki SendAsync ve hız hesaplama kodlarına HİÇ DOKUNMUYORSUN.
                         break;
                     default: // SPİRALDEN SABİT YÖRÜNGE (İniş yerine belirli bir irtifada dönme)
                         double startAlt = 300.0;
