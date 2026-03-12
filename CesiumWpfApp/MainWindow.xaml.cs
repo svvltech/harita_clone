@@ -36,7 +36,7 @@ namespace CesiumWpfApp
 
         // Uçak test modu (mevcut switch ile aynı)
         // 0 = Spiral iniş, 1 = Düz çizgi, 2 = Sabit daire
-        private int _planeMovementMode = 20;
+        private int _planeMovementMode = 21;
 
         // ═══════════════════════════════════════════════════════════════
         // SİMÜLASYON VERİLERİ (başlangıç konumları)
@@ -448,7 +448,7 @@ namespace CesiumWpfApp
                         }
                         break;
 
-                    case 16: // KISA KESİNTİ 2: DÖNÜŞ → 5sn gap → AYNI DÖNÜŞE DEVAM
+                    case 166: // KISA KESİNTİ 2: DÖNÜŞ → 5sn gap → AYNI DÖNÜŞE DEVAM
                         // En yaygın senaryo: Uçak virajda, veri kesildi, aynı virajda devam.
                         // Beklenti: Motor dönüş ekstrapolasyonu yapar, veri gelince neredeyse birebir eşleşir.
                         {
@@ -457,6 +457,20 @@ namespace CesiumWpfApp
                             double t16 = _simTime * w16;
                             _planeLon = _shipLon + Math.Cos(t16) * r16;
                             _planeLat = _shipLat + Math.Sin(t16) * r16;
+                            _planeAlt = 1000;
+                            _suppressPlanePacket = (_simTime >= 10.0 && _simTime <= 15.0);//30.0);
+                        }
+                        break;
+
+                    case 16: // gemiden bağımsız dönen case16
+                        {
+                            double centerLon16 = 26.46;
+                            double centerLat16 = 40.54;
+                            double r16 = 0.01; // ~1.1 km yarıçap
+                            double w16 = 0.2;  // ~200 m/s daire hızı
+                            double t16 = _simTime * w16;
+                            _planeLon = centerLon16 + Math.Cos(t16) * r16;
+                            _planeLat = centerLat16 + Math.Sin(t16) * r16;
                             _planeAlt = 1000;
                             _suppressPlanePacket = (_simTime >= 10.0 && _simTime <= 15.0);
                         }
@@ -593,6 +607,139 @@ namespace CesiumWpfApp
                         }
                         break;
 
+
+                    case 21: // NİHAİ TIMEOUT TESTİ: Virajdayken 17 sn Kopma + Uzak Noktaya Işınlanma
+                             // Bu test MovementEngine'in tüm limitlerini zorlar: 
+                             // Yay İntegrali, Sönümleme, 15sn Freeze ve ForceSync(Amnezi) aynı anda çalışır.
+
+                        double r21 = 0.01;
+                        double w21 = 0.2; // Keskin dönüş hızı
+
+                        if (_simTime < 10.0)
+                        {
+                            // 1. AŞAMA: Uçak saat yönünün tersine viraj dönüyor
+                            double t21 = _simTime * w21;
+                            _planeLon = _shipLon + Math.Cos(t21) * r21;
+                            _planeLat = _shipLat + Math.Sin(t21) * r21;
+                        }
+                        else
+                        {
+                            // 2. AŞAMA: Gerçek dünyada uçak virajı bitirip Kuzey-Doğu'ya kaçıyor.
+                            // Ancak 17 saniye boyunca bu bilgiyi Cesium'a göndermeyeceğiz.
+                            double dt21 = _simTime - 10.0;
+
+                            // 10. saniyedeki konumu (Kopma noktası)
+                            double breakAngle = 10.0 * w21;
+                            double startLon = _shipLon + Math.Cos(breakAngle) * r21;
+                            double startLat = _shipLat + Math.Sin(breakAngle) * r21;
+
+                            // Uçak o noktadan itibaren dümdüz ve çok hızlı bir şekilde uzaklaşıyor
+                            _planeLon = startLon + (dt21 * 0.0001 * 20); // Doğuya gidiş
+                            _planeLat = startLat + (dt21 * 0.0001 * 20); // Kuzeye gidiş
+                        }
+
+                        _planeAlt = 1500;
+
+                        // KRİTİK NOKTA: 10. ile 27. saniyeler arasında (17 sn boyunca) PAKET GÖNDERME!
+                        // Cesium 15. saniyede uçağı donduracak. 
+                        // 27. saniyede paket ulaştığında dtPacket > 15 olacak ve ForceSync tetiklenecek.
+                        _suppressPlanePacket = (_simTime >= 10.0 && _simTime <= 27.0);
+                        break;
+
+
+                    case 233: // TEST 23: DÜZENSİZ VERİ FREKANSI (Dalgalı Paket Gelişi)
+                        // Uçak yavaşça viraj dönsün (Ekstrapolasyon ve yumuşatmayı en iyi virajda görürüz)
+                        double r23 = 0.01;
+                        double w23 = 0.2;
+                        double t23 = _simTime * w23;
+                        _planeLon = _shipLon + Math.Cos(t23) * r23;
+                        _planeLat = _shipLat + Math.Sin(t23) * r23;
+                        _planeAlt = 1000;
+
+                        // RASTGELE ZAMANLAYICI (Düzensiz Frekans Simülasyonu)
+                        long nowMs23 = DateTimeOffset.UtcNow.ToUnixTimeMilliseconds();
+                        
+                        // Eğer son paketin süresi dolduysa (yani birazdan aşağıdaki blokta paket gönderilecekse),
+                        // BİR SONRAKİ paketin ne zaman geleceğini rastgele (Örn: 2 sn ile 6 sn arası) belirle.
+                        if (nowMs23 - _lastPlaneSend >= _planeSendMs)
+                        {
+                            // Bir sonraki paket 2000 ms (2sn) ile 6000 ms (6sn) arasında rastgele bir sürede gelecek
+                            _planeSendMs = Random.Shared.Next(400, 800); 
+                        }
+                        
+                        _suppressPlanePacket = false;
+                        break;
+
+                    case 23: // GERÇEKÇİ 5Hz (200ms) AĞ DALGALANMASI (JITTER) TESTİ
+                        // Uçak standart bir viraj dönüyor
+                        double r24 = 0.01;
+                        double w24 = 0.2;
+                        double t24 = _simTime * w24;
+                        _planeLon = _shipLon + Math.Cos(t24) * r24;
+                        _planeLat = _shipLat + Math.Sin(t24) * r24;
+                        _planeAlt = 1000;
+
+                        long nowMs24 = DateTimeOffset.UtcNow.ToUnixTimeMilliseconds();
+                        
+                        if (nowMs24 - _lastPlaneSend >= _planeSendMs)
+                        {
+                            // 5Hz (200ms) için gerçekçi fiziksel ağ simülasyonu
+                            double zar = Random.Shared.NextDouble();
+                            
+                            if (zar < 0.5) 
+                            {
+                                // %50 ihtimalle anlık bir takılma / 1 paket kaybı (300ms - 450ms)
+                                _planeSendMs = Random.Shared.Next(300, 500); 
+                            }
+                            else 
+                            {
+                                // %95 ihtimalle sağlıklı ama hafif dalgalı (Jitter: 180ms - 220ms)
+                                _planeSendMs = Random.Shared.Next(180, 220);
+                            }
+                        }
+                        
+                        _suppressPlanePacket = false;
+                        break;
+
+                    case 25: // TEST 25: GERÇEKÇİ SAVAŞ AĞI (Tıkanıklık ve Veri Patlaması / Lag & Burst)
+                        // Uçak yine viraj dönüyor ki kavis tutturma yeteneğini görelim
+                        double r25 = 0.01;
+                        double w25 = 0.2;
+                        double t25 = _simTime * w25;
+                        _planeLon = _shipLon + Math.Cos(t25) * r25;
+                        _planeLat = _shipLat + Math.Sin(t25) * r25;
+                        _planeAlt = 1000;
+
+                        long nowMs25 = DateTimeOffset.UtcNow.ToUnixTimeMilliseconds();
+                        
+                        if (nowMs25 - _lastPlaneSend >= _planeSendMs)
+                        {
+                            double zar = Random.Shared.NextDouble();
+                            
+                            if (zar < 0.20) 
+                            {
+                                // %20 İhtimalle AĞ TIKANIR (Lag Spike): 
+                                // Veri 3-5 paket boyunca gelmez. (600ms ile 1200ms arası boşluk)
+                                // Burada senin Yay İntegralin (CTRV) devreye girip uçağı 1 saniye boyunca kavisli uçurmak zorundadır.
+                                _planeSendMs = Random.Shared.Next(600, 1200); 
+                            }
+                            else if (zar < 0.40)
+                            {
+                                // %20 İhtimalle TIKANIKLIK AÇILIR (Burst):
+                                // Geciken paketler ağdan mermi gibi peş peşe dökülür (50ms ile 100ms arası)
+                                // Burada İnterpolasyonun "zıplama" yapmadan uçağı hızlıca yakalatması gerekir.
+                                _planeSendMs = Random.Shared.Next(50, 100);
+                            }
+                            else 
+                            {
+                                // %60 İhtimalle NORMAL AKIŞ:
+                                // Ufak tefek pürüzlerle standart UDP akışı (150ms ile 300ms arası)
+                                _planeSendMs = Random.Shared.Next(150, 300);
+                            }
+                        }
+                        
+                        _suppressPlanePacket = false;
+                        break;
                     default: // SPİRALDEN SABİT YÖRÜNGE (İniş yerine belirli bir irtifada dönme)
                         double startAlt = 300.0;
                         double targetAlt = 100.0; // Bu irtifada durup sadece dönecek

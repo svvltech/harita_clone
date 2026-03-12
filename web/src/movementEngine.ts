@@ -193,22 +193,43 @@ export class MovementEngine {
             const invEnu = Cesium.Matrix4.inverse(MovementEngine._sEnuMatrix, MovementEngine._sInvEnuMatrix);
             const localDiff = Cesium.Matrix4.multiplyByPointAsVector(invEnu, diff, MovementEngine._sTrackEnu);
 
+            let rawTrackTurnRate = 0;
             // Eğer hareket çok küçük değilse gerçek rotayı (track) hesapla
             if (Cesium.Cartesian3.magnitude(localDiff) > 0.1) {
                 this.trackAngle = Math.atan2(localDiff.x, localDiff.y); // Doğuya ne kadar gittim? = X, Kuzeye ne kadar gittim? = Y
                 
-                // Track bazlı dönüş hızı (Manevra tahmini için)
-                let deltaT = this.trackAngle - this.lastTrackAngle;
-                if (deltaT > Math.PI) deltaT -= Math.PI * 2;
-                if (deltaT < -Math.PI) deltaT += Math.PI * 2;
-                this.trackTurnRate = deltaT / dtPacket;
+                // KRİTİK DÜZELTME: 3. paketten önce dönüş hızı (kavis) HESAPLANAMAZ!
+                if (this.packetCount > 2) {
+                    // Track bazlı dönüş hızı (Manevra tahmini için)
+                    let deltaT = this.trackAngle - this.lastTrackAngle;
+                    if (deltaT > Math.PI) deltaT -= Math.PI * 2;
+                    if (deltaT < -Math.PI) deltaT += Math.PI * 2;
+
+                    //this.trackTurnRate = deltaT / dtPacket;
+                    rawTrackTurnRate = deltaT / dtPacket;
+                }
             }            
-                    
-            // turnRate hesabı - Belki yönelim için kullanılır ?? 
-            let deltaH = h - this.lastHeading;
-            if (deltaH > Math.PI) deltaH -= Math.PI * 2;
-            if (deltaH < -Math.PI) deltaH += Math.PI * 2;
-            this.turnRate = deltaH / dtPacket;
+            
+            let rawTurnRate = 0;
+            if (this.packetCount > 2) {
+                // turnRate hesabı - Belki yönelim için kullanılır ?? 
+                let deltaH = h - this.lastHeading;
+                if (deltaH > Math.PI) deltaH -= Math.PI * 2;
+                if (deltaH < -Math.PI) deltaH += Math.PI * 2;
+                //this.turnRate = deltaH / dtPacket;
+                rawTurnRate = deltaH / dtPacket;
+            }
+
+            // --- LOW-PASS FILTER (Hareketli Ortalama) ---
+            // Eğer uçak yeni doğduysa veya uzun süredir veri gelmiyorsa filtreyi sıfırla
+            if (this.packetCount <= 3 || dtPacket > 3.0) {
+                this.trackTurnRate = rawTrackTurnRate;
+                this.turnRate = rawTurnRate;
+            } else {
+                // Ağdaki anlık kopmalara/patlamalara karşı eski istikrarı %80 koru, yeni hıza %20 güven
+                this.trackTurnRate = (this.trackTurnRate * 0.8) + (rawTrackTurnRate * 0.2);
+                this.turnRate = (this.turnRate * 0.8) + (rawTurnRate * 0.2);
+            }
 
             // İrtifa farkını geçen süreye bölüyoruz
             this.vz = (alt - this.lastAlt) / dtPacket;
@@ -396,6 +417,16 @@ export class MovementEngine {
         const predictedRoll = Math.atan(this.speed * this.turnRate / this.GRAVITY);
         // Tırmanma/alçalma açısı: pitch = atan2(vz, speed) — burun yönü
         const predictedPitch = (this.speed > 0.5) ? Math.atan2(this.vz, this.speed) : 0;
+
+
+        /**
+        // EĞER FİZİKSEL VERİ YOKSA (HIZ DÜŞÜK VEYA DURUYORSA), SON PAKET VERİSİNİ KULLAN
+        // Bu sayede uçak yerdeyken veya çok yavaşken burnu ve yatışı sıfırlanmaz.
+        if (this.speed < 1.0) {
+            predictedRoll = this.lastRoll;
+            predictedPitch = this.lastPitch;
+        } 
+         */
 
         // Fiziksel sınır clamping
         // Değer eğer minimumdan (negatif) küçükse, taban sınırının altına inmesini engeller.
