@@ -1,25 +1,7 @@
 import * as Cesium from "cesium";
 import { viewer } from "./harita";
-import { MovementEngine, KinematicProfile } from "./movementEngine";
+import { MovementEngine } from "./movementEngine";
 
-// --- VALIDATION LIMITS ---
-const SHIP_LIMITS: KinematicProfile = {
-    maxPhysicalSpeed: 40,
-    maxAltitude: 300,
-    minAltitude: -10,
-
-    minCorrectionSpeed: 2.0,  // Gemi dururken bile düzeltmeleri çok yavaş (saniyede 2 metre) yapar.
-    catchUpTimeSec: 3.0       // Hatayı kapatmak için acele etmez, 3 saniyeye yayarak pürüzsüzce süzülür.
-};
-
-const PLANE_LIMITS: KinematicProfile = {
-    maxPhysicalSpeed: 600,
-    maxAltitude: 25000,
-    minAltitude: -100,
-
-    minCorrectionSpeed: 20.0, // Taksi yaparken veya yavaşken bile konum sapmalarını atikçe (20 m/s) kapatır.
-    catchUpTimeSec: 0.5       // Hatayı yarım saniye içinde çok agresif bir şekilde sönümler.
-};
 
 // --- NESNE TAKİPÇİLERİ (ENGINES) ---
 let shipEngine: MovementEngine | null = null;
@@ -122,7 +104,7 @@ export const updateEntityPosition = (id: string, lon: number, lat: number, heigh
     if (id === "SHIP_01") {
         if (!shipEngine) {
             // shipEngine = new MovementEngine(lon, lat, height);
-            shipEngine = new MovementEngine(lon, lat, height, 0, 0, 0, SHIP_LIMITS);
+            shipEngine = new MovementEngine(lon, lat, height, 0, 0, 0);
                 (window as any).shipEngine = shipEngine; // GLOBALE BAĞLA (DEBUG)
             shipEngine.setOrientationOffset(Math.PI); // Gemi kıç tarafıyla (ters : Math.PI/2 iken ters gider) ilerlediği için 180 derece (PI) ofset ekledik ,
             addAircraftCarrier();
@@ -132,7 +114,7 @@ export const updateEntityPosition = (id: string, lon: number, lat: number, heigh
     else if (id === "PLANE_01") {
         if (!planeEngine) {
             // planeEngine = new MovementEngine(lon, lat, height);
-            planeEngine = new MovementEngine(lon, lat, height, 0, 0, 0, PLANE_LIMITS);
+            planeEngine = new MovementEngine(lon, lat, height, 0, 0, 0);
                 (window as any).planeEngine = planeEngine; // GLOBALE BAĞLA (DEBUG)
             planeEngine.setOrientationOffset(-Math.PI / 2); // Uçak burnu 90 derece sapmalı, düzeltelim
             addLandingPlane();
@@ -151,7 +133,7 @@ export const updateEntityPosition = (id: string, lon: number, lat: number, heigh
     else if(id === "DECK_01"){
         if (!deckEngine) {
             // deckEngine = new MovementEngine(lon, lat, height);
-            deckEngine = new MovementEngine(lon, lat, height, 0, 0, 0, SHIP_LIMITS);
+            deckEngine = new MovementEngine(lon, lat, height, 0, 0, 0);
                 (window as any).deckEngine = deckEngine; // GLOBALE BAĞLA (DEBUG)
             createFlightDeckGroup();
         }
