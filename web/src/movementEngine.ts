@@ -232,32 +232,6 @@ export class MovementEngine {
         this.orientationOffset = offsetRad;
     }
 
-    /**
-     * Debug bilgilerini döndürür (ekran üstü HUD için).
-     */
-    public getDebugInfo(): { timeSincePacket: number; speed: number; packetCount: number; status: string } {
-        const localNow = Date.now();
-        const estimatedServerNow = localNow - this.serverClientOffset;
-        const timeSincePacket = this.lastServerTime > 0 ? (estimatedServerNow - this.lastServerTime) / 1000 : 0;
-
-        let status = "BEKLENIYOR";
-        if (this.lastServerTime === 0) {
-            status = "ILK_PAKET";
-        } else if (timeSincePacket > this.PREDICTION_MAX_SEC) {
-            status = "TIMEOUT";
-        } else if (timeSincePacket > 3.0) {
-            status = "UZUN_BOSLUK";
-        } else {
-            status = "VERI_ALINIYOR";
-        }
-
-        return {
-            timeSincePacket: Math.max(0, timeSincePacket),
-            speed: this.speed,
-            packetCount: this.packetCount,
-            status
-        };
-    }
 
     /*
     public getLatestPosition(result: Cesium.Cartesian3): Cesium.Cartesian3 {
@@ -532,6 +506,33 @@ export class MovementEngine {
             Cesium.Transforms.eastNorthUpToFixedFrame,
             MovementEngine._sNewQuat // Mevcut scratchpad'i kullanıyoruz
         );
+    }
+
+    /**
+    * Debug bilgilerini döndürür (ekran üstü HUD için).
+    */
+    public getDebugInfo(): { timeSincePacket: number; speed: number; packetCount: number; status: string } {
+        const localNow = Date.now();
+        const estimatedServerNow = localNow - this.serverClientOffset;
+        const timeSincePacket = this.lastServerTime > 0 ? (estimatedServerNow - this.lastServerTime) / 1000 : 0;
+
+        let status = "BEKLENIYOR";
+        if (this.lastServerTime === 0) {
+            status = "ILK_PAKET";
+        } else if (timeSincePacket > this.PREDICTION_MAX_SEC) {
+            status = "TIMEOUT";
+        } else if (timeSincePacket > 3.0) {
+            status = "UZUN_BOSLUK";
+        } else {
+            status = "VERI_ALINIYOR";
+        }
+
+        return {
+            timeSincePacket: Math.max(0, timeSincePacket),
+            speed: this.speed,
+            packetCount: this.packetCount,
+            status
+        };
     }
 
 }
