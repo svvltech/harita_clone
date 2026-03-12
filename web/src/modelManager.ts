@@ -7,7 +7,6 @@ const SHIP_LIMITS: KinematicProfile = {
     maxPhysicalSpeed: 40,
     maxAltitude: 300,
     minAltitude: -10,
-    maxJumpDistancePerSecond: 60,
 
     minCorrectionSpeed: 2.0,  // Gemi dururken bile düzeltmeleri çok yavaş (saniyede 2 metre) yapar.
     catchUpTimeSec: 3.0       // Hatayı kapatmak için acele etmez, 3 saniyeye yayarak pürüzsüzce süzülür.
@@ -17,7 +16,6 @@ const PLANE_LIMITS: KinematicProfile = {
     maxPhysicalSpeed: 600,
     maxAltitude: 25000,
     minAltitude: -100,
-    maxJumpDistancePerSecond: 1000,
 
     minCorrectionSpeed: 20.0, // Taksi yaparken veya yavaşken bile konum sapmalarını atikçe (20 m/s) kapatır.
     catchUpTimeSec: 0.5       // Hatayı yarım saniye içinde çok agresif bir şekilde sönümler.
@@ -271,7 +269,7 @@ export const addLandingPlane = (): void => {
                             // ════════════════════════════════════════════════════
                             // DİNAMİK KONTROL: Taşıtın kendi profil sınırını kullan
                             // ════════════════════════════════════════════════════
-                            const jumpLimit = PLANE_LIMITS.maxJumpDistancePerSecond || 1000;
+                            const jumpLimit = /*PLANE_LIMITS.maxJumpDistancePerSecond || */ 1000;
 
                             if (currentDrawSpeed > jumpLimit) {
                                 // Çizim hızı fiziksel limiti aştı, bu bir ışınlanmadır!

@@ -10,7 +10,6 @@ export interface KinematicProfile {
     maxPhysicalSpeed?: number;         // m/s (Örn: 500)
     minAltitude?: number;              // m
     maxAltitude?: number;              // m
-    maxJumpDistancePerSecond?: number; // m/s (Anlık sıçrama sınırı) — artık sadece referans, timeout mantığı kullanılıyor
 
     // YENİ EKLENEN JENERİK AYARLAR
     minCorrectionSpeed?: number;       // m/s (Duran aracın pozisyon düzeltme hızı. Gemi için 2, Uçak için 20 vb.)
@@ -88,7 +87,6 @@ export class MovementEngine {
             maxPhysicalSpeed: profile?.maxPhysicalSpeed ?? 600,
             minAltitude: profile?.minAltitude ?? -100,
             maxAltitude: profile?.maxAltitude ?? 25000,
-            maxJumpDistancePerSecond: profile?.maxJumpDistancePerSecond ?? 2000, // 1000 -> 2000 (Mach ~6)
             minCorrectionSpeed: profile?.minCorrectionSpeed ?? 10.0, // Varsayılan 10 m/s
             catchUpTimeSec: profile?.catchUpTimeSec ?? 1.0 // Varsayılan 1 saniye
         };
