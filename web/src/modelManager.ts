@@ -70,19 +70,20 @@ function updateDebugHud(info: { timeSincePacket: number; speed: number; packetCo
         debugHudEl.id = "debug-hud";
         debugHudEl.style.cssText = `
             position: fixed;
-            top: 10px;
-            right: 10px;
+            top: 155px;
+            left: 20px;
             background: rgba(0, 0, 0, 0.75);
             color: #fff;
             font-family: 'Consolas', 'Courier New', monospace;
             font-size: 13px;
-            padding: 10px 14px;
+            padding: 10px 12px;
             border-radius: 8px;
             z-index: 99999;
             pointer-events: none;
             line-height: 1.6;
-            min-width: 220px;
+            min-width: 205px;
             border: 1px solid rgba(255,255,255,0.15);
+            backdrop-filter: blur(4px);
         `;
         document.body.appendChild(debugHudEl);
     }
