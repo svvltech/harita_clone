@@ -342,7 +342,7 @@ export class MovementEngine {
                 const theta1 = theta0 + (this.trackTurnRate * dtSincePacket);
                 const R = this.speed / this.trackTurnRate; // Dönüş Yarıçapı (V / w)
 
-                // İntegral Düzeltmesi: Vx=Sin integrali -Cos'tur. Vy=Cos integrali Sin'dir.
+                // Vx=Sin integrali -Cos. Vy=Cos integrali Sin.
                 moveEnu.x = R * (Math.cos(theta0) - Math.cos(theta1)); // East
                 moveEnu.y = R * (Math.sin(theta1) - Math.sin(theta0)); // North
             }
