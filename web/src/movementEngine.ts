@@ -307,12 +307,27 @@ export class MovementEngine {
             // const predictedHeading = this.heading + (this.turnRate * dtSincePacket);
             // ARTIK TAHMİNİ HEADING İLE DEĞİL, TRACK ANGLE İLE YAPIYORUZ
             // Bu sayede rüzgar etkisi (drift) otomatik korunur.
-            const predictedTrack = this.trackAngle + (this.trackTurnRate * dtSincePacket);
 
             const moveEnu = MovementEngine._sMoveEnu;
-            moveEnu.x = Math.sin(predictedTrack) * this.speed * dtSincePacket; // East
-            moveEnu.y = Math.cos(predictedTrack) * this.speed * dtSincePacket; // North
-            // moveEnu.z = 0;
+            
+            /////
+            // Eğer dönüş hızı çok küçükse (düz uçuş), sıfıra bölme hatasını önlemek için klasik doğrusal (kiriş) formül
+            if (Math.abs(this.trackTurnRate) < 0.001) {
+                const predictedTrack = this.trackAngle + (this.trackTurnRate * dtSincePacket);
+                moveEnu.x = Math.sin(predictedTrack) * this.speed * dtSincePacket; // East
+                moveEnu.y = Math.cos(predictedTrack) * this.speed * dtSincePacket; // North
+            } 
+            // Eğer uçak virajdaysa KUSURSUZ YAY İNTEGRALİ (CTRV - Sabit Dönüş Hızı ve Hız Modeli)
+            else {
+                const theta0 = this.trackAngle;
+                const theta1 = theta0 + (this.trackTurnRate * dtSincePacket);
+                const R = this.speed / this.trackTurnRate; // Dönüş Yarıçapı (V / w)
+
+                // İntegral Düzeltmesi: Vx=Sin integrali -Cos'tur. Vy=Cos integrali Sin'dir.
+                moveEnu.x = R * (Math.cos(theta0) - Math.cos(theta1)); // East
+                moveEnu.y = R * (Math.sin(theta1) - Math.sin(theta0)); // North
+            }
+            /////
 
             // DİKEY TAHMİN (Yeni eklenen kısım)
             // Uçak paketler arasında vz hızıyla yükseliyor veya alçalıyor
