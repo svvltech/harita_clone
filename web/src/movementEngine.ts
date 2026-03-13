@@ -54,7 +54,8 @@ export class MovementEngine {
     // 15 saniye sonra gelen veri forceSync ile aracı yeni konumdan başlatır.
     // 15 saniye içinde gelen veri normal kabul edilir, süzülerek yetişir.
     private readonly PREDICTION_MAX_SEC = 15.0; // Ekstrapolasyon da 15 saniyeye kadar devam eder
-        
+    private readonly MAX_MISSED_PACKETS = 5;
+
     private readonly MAX_ROLL_RAD = Cesium.Math.toRadians(60);   // Maksimum roll: ±60°
     private readonly MAX_PITCH_RAD = Cesium.Math.toRadians(45);  // Maksimum pitch: ±45°
     private readonly GRAVITY = 9.81; // Yerçekimi ivmesi (m/s²)
@@ -74,6 +75,7 @@ export class MovementEngine {
     private static readonly _sInvNewQuat = new Cesium.Quaternion();
     private static readonly _sDecayedOriError = new Cesium.Quaternion();
 
+    
     constructor(initialLon: number, initialLat: number, initialHeight: number, initialH: number = 0, initialP: number = 0, initialR: number = 0) {
         // Verilen derece cinsinden coğrafi konumu Cesium'un kullandığı ECEF koordinatlarına çevirir
         Cesium.Cartesian3.fromDegrees(initialLon, initialLat, initialHeight, Cesium.Ellipsoid.WGS84, this.currentVisualPos);
@@ -98,6 +100,20 @@ export class MovementEngine {
         this.lastPacketLocalTime = Date.now();
         Cesium.Cartesian3.ZERO.clone(this.posError);
         Cesium.Quaternion.IDENTITY.clone(this.oriError);
+    }
+
+    private getMaxPredictionTime(): number {
+        // 5 packets * average interval. 
+        // Minimum safety floor of 1.0s to handle initial startup or very high-frequency bursts.
+        return Math.max(1.5, this.avgPacketDt * this.MAX_MISSED_PACKETS);
+    }
+
+
+    // --- DİNAMİK ZAMAN AŞIMI (5 PAKET KURALI) ---
+    private get predictionTimeoutSec(): number {
+        // Ağın ortalama ritminin 5 katı (5 paketlik boşluk).
+        // Ağ çok hızlıysa uçağın 250ms'de donmasını önlemek için "minimum 1.5 saniye" sınırı koyuyoruz.
+        return Math.max(this.avgPacketDt * 5.0, 1.5);
     }
 
     /**
@@ -140,8 +156,9 @@ export class MovementEngine {
         // UZUN BOŞLUK KONTROLÜ (Timeout sonrası ilk paket)
         const dtPacket = (previousServerTime > 0) ? (serverTimestamp - previousServerTime) / 1000 : 0;
 
-        if (dtPacket > this.PREDICTION_MAX_SEC) {
-            // 15 saniyeden uzun süre veri gelmemiş → aracı yeni konumdan başlat
+        if (dtPacket > this.predictionTimeoutSec) {
+            //eskidendi: 15 saniyeden uzun süre veri gelmemiş → aracı yeni konumdan başlat
+            // 5 paketlik süreden uzun süre veri gelmemiş → aracı yeni konumdan başlat
             console.log(`[MovementEngine] ${dtPacket.toFixed(1)}s veri boşluğu → ForceSync yapılıyor.`);
             this.forceSync(lon, lat, alt, speed, h, p, r);
             return; // Bu paket işlendi (forceSync ile), normal akışa geçmeye gerek yok
@@ -382,7 +399,10 @@ export class MovementEngine {
         
         // Emniyet Kemerleri
         if (dtSincePacket < 0) dtSincePacket = 0;
-        if (dtSincePacket > this.PREDICTION_MAX_SEC) dtSincePacket = this.PREDICTION_MAX_SEC;
+
+        // Eskisi: if (dtSincePacket > this.PREDICTION_MAX_SEC) dtSincePacket = this.PREDICTION_MAX_SEC;
+        const timeout = this.predictionTimeoutSec;
+        if (dtSincePacket > timeout) dtSincePacket = timeout; // Tahmini durdur ve uçağı dondur
 
         // HEADING + TRACK ANGLE TAHMİNİ: Basit ama sağlam ekstrapolasyon
         const targetPos = Cesium.Cartesian3.clone(this.lastRealPos, MovementEngine._sTargetPos);
@@ -544,7 +564,10 @@ export class MovementEngine {
         const estimatedServerNow = localNow - this.serverClientOffset;
         let dtSincePacket = (estimatedServerNow - this.lastServerTime) / 1000;
         if (dtSincePacket < 0) dtSincePacket = 0;
-        if (dtSincePacket > this.PREDICTION_MAX_SEC) dtSincePacket = this.PREDICTION_MAX_SEC;
+
+        // Eskisi: if (dtSincePacket > this.PREDICTION_MAX_SEC) dtSincePacket = this.PREDICTION_MAX_SEC;
+        const timeout = this.predictionTimeoutSec;
+        if (dtSincePacket > timeout) dtSincePacket = timeout; // Dönüşü durdur
 
         const predictedHeading = this.heading + (this.turnRate * dtSincePacket) + this.orientationOffset;
 
@@ -685,7 +708,8 @@ export class MovementEngine {
         let status = "BEKLENIYOR";
         if (this.lastServerTime === 0) {
             status = "ILK_PAKET";
-        } else if (timeSincePacket > this.PREDICTION_MAX_SEC) {
+        // Eskisi: } else if (timeSincePacket > this.PREDICTION_MAX_SEC) {
+        } else if (timeSincePacket > this.predictionTimeoutSec) {
             status = "TIMEOUT";
         } else if (timeSincePacket > 3.0) {
             status = "UZUN_BOSLUK";
