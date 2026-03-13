@@ -54,6 +54,7 @@ export class MovementEngine {
     // 15 saniye sonra gelen veri forceSync ile aracı yeni konumdan başlatır.
     // 15 saniye içinde gelen veri normal kabul edilir, süzülerek yetişir.
     private readonly PREDICTION_MAX_SEC = 15.0; // Ekstrapolasyon da 15 saniyeye kadar devam eder
+    private readonly MAX_MISSED_PACKETS = 5;
         
     private readonly MAX_ROLL_RAD = Cesium.Math.toRadians(60);   // Maksimum roll: ±60°
     private readonly MAX_PITCH_RAD = Cesium.Math.toRadians(45);  // Maksimum pitch: ±45°
@@ -99,7 +100,13 @@ export class MovementEngine {
         Cesium.Cartesian3.ZERO.clone(this.posError);
         Cesium.Quaternion.IDENTITY.clone(this.oriError);
     }
-
+/*
+    private getMaxPredictionTime(): number {
+        // 5 packets * average interval. 
+        // Minimum safety floor of 1.0s to handle initial startup or very high-frequency bursts.
+        return Math.max(1.5, this.avgPacketDt * this.MAX_MISSED_PACKETS);
+    }
+*/
     /**
      * DİKKAT: Bu fonksiyonu Cesium'un `scene.preUpdate` event'inde HER KAREDE BİR KEZ çağır!
      * Böylece Position ve Orientation fonksiyonları aynı zaman dilimini kullanır, titreme olmaz.
