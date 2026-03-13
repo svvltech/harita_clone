@@ -176,30 +176,7 @@ export class MovementEngine {
         this.packetCount++;
         const newPos = Cesium.Cartesian3.fromDegrees(lon, lat, alt, Cesium.Ellipsoid.WGS84, MovementEngine._sNewPos);
         
-        MovementEngine._sHpr.heading = h + this.orientationOffset;
-        MovementEngine._sHpr.pitch = p;
-        MovementEngine._sHpr.roll = r;
-        const newQuat = Cesium.Transforms.headingPitchRollQuaternion(newPos, MovementEngine._sHpr, Cesium.Ellipsoid.WGS84, Cesium.Transforms.eastNorthUpToFixedFrame, MovementEngine._sNewQuat);
-
-/////
-        // --- YENİ MİMARİ: HATA VEKTÖRÜNÜ YAKALA ---
-        // Yeni hedef konumu belirlemeden önce, görsel modelin ne kadar "yanlış" yerde kaldığını buluruz.
-        Cesium.Cartesian3.subtract(this.currentVisualPos, newPos, this.posError);
-        
-        // Açı hatasını bul: oriError = currentVisual * inverse(newQuat)
-        const invNewQuat = Cesium.Quaternion.inverse(newQuat, MovementEngine._sInvNewQuat);
-        Cesium.Quaternion.multiply(this.currentVisualQuat, invNewQuat, this.oriError);
-
-        // Güvenlik Subabı: Eğer ağda devasa bir lag olduysa ve hata 500 metreyi geçtiyse, 
-        // sönümleme yapma, direkt ışınlan (lastik gibi çekilmesini önler).
-        if (Cesium.Cartesian3.magnitude(this.posError) > 500.0) {
-            Cesium.Cartesian3.ZERO.clone(this.posError);
-            Cesium.Quaternion.IDENTITY.clone(this.oriError);
-        }
-/////
-
-
-
+        // ONCE FİZİK VE DÖNÜŞ HIZI HESAPLAMALARINI YAP!
         // 2. Heading + TurnRate + Speed hesapla
         if (dtPacket > 0.01 && previousServerTime > 0) {
                        
@@ -210,22 +187,34 @@ export class MovementEngine {
             const invEnu = Cesium.Matrix4.inverse(MovementEngine._sEnuMatrix, MovementEngine._sInvEnuMatrix);
             const localDiff = Cesium.Matrix4.multiplyByPointAsVector(invEnu, diff, MovementEngine._sTrackEnu);
 
+
+            // GÜRÜLTÜ FİLTRESİ (Mesafe Kontrolü)
+            const moveDist = Cesium.Cartesian3.magnitude(localDiff);
             let rawTrackTurnRate = 0;
-            // Eğer hareket çok küçük değilse gerçek rotayı (track) hesapla
-            if (Cesium.Cartesian3.magnitude(localDiff) > 0.1) {
-                this.trackAngle = Math.atan2(localDiff.x, localDiff.y); // Doğuya ne kadar gittim? = X, Kuzeye ne kadar gittim? = Y
+
+            // 1. DURMA KONTROLÜ (Eski korumamız)
+            if (this.speed < 1.0) {
+                // Araç duruyor veya park ediyor. Dönüş hızı kesinlikle SIFIR olmalı.
+                rawTrackTurnRate = 0; 
+            }
+            // 2. GÜRÜLTÜ / BURST KONTROLÜ
+            else if (moveDist < 1.5) {
+                // Araç hızlı gidiyor ama 1.5 metreden az yol almış. Demek ki paket çok hızlı (Burst) geldi!
+                // Açı hesaplamak için mesafe çok kısa (gürültülü olur), bu yüzden ESKİ KAVİSİ KORU, sıfırlama!
+                rawTrackTurnRate = this.trackTurnRate; 
+            }
+            // 3. NORMAL UÇUŞ
+            else {
+                // Mesafe yeterince uzun, gerçek ve pürüzsüz açıyı hesapla
+                this.trackAngle = Math.atan2(localDiff.x, localDiff.y); 
                 
-                // KRİTİK DÜZELTME: 3. paketten önce dönüş hızı (kavis) HESAPLANAMAZ!
                 if (this.packetCount > 2) {
-                    // Track bazlı dönüş hızı (Manevra tahmini için)
                     let deltaT = this.trackAngle - this.lastTrackAngle;
                     if (deltaT > Math.PI) deltaT -= Math.PI * 2;
                     if (deltaT < -Math.PI) deltaT += Math.PI * 2;
-
-                    //this.trackTurnRate = deltaT / dtPacket;
                     rawTrackTurnRate = deltaT / dtPacket;
                 }
-            }            
+            }          
             
             let rawTurnRate = 0;
             if (this.packetCount > 2) {
@@ -253,6 +242,63 @@ export class MovementEngine {
             // Gereksiz titremeyi (jitter) önlemek için dikey hızı biraz sönümleyebilirsin (opsiyonel)
             // this.vz = this.vz * 0.8 + (newVz * 0.2);
         }
+
+
+
+        //////// HİÇ YOKTU
+        // ---------------------------------------------------------
+        // 2. SUNUCU VERİSİNİ EZ, FİZİKSEL YATIS (ROLL) AÇISINI BUL
+        // ---------------------------------------------------------
+        let physicsRoll = r; // Başlangıçta sunucudan geleni al
+        let physicsPitch = p;
+
+        if (speed > 1.0) {
+            // Uçak hareket ediyorsa, C#'tan gelen 'r' değerini çöpe at, fiziği kullan!
+            physicsRoll = Math.atan(speed * this.turnRate / this.GRAVITY);
+            physicsPitch = Math.atan2(this.vz, speed);
+        }
+        
+        // Sınırları uygula
+        physicsRoll = Math.max(-this.MAX_ROLL_RAD, Math.min(this.MAX_ROLL_RAD, physicsRoll));
+        physicsPitch = Math.max(-this.MAX_PITCH_RAD, Math.min(this.MAX_PITCH_RAD, physicsPitch));
+        ///////
+
+        ///
+        MovementEngine._sHpr.heading = h + this.orientationOffset;
+        MovementEngine._sHpr.pitch = physicsPitch;//p;
+        MovementEngine._sHpr.roll = physicsRoll;//r;
+        const newQuat = Cesium.Transforms.headingPitchRollQuaternion(newPos, MovementEngine._sHpr, Cesium.Ellipsoid.WGS84, Cesium.Transforms.eastNorthUpToFixedFrame, MovementEngine._sNewQuat);
+
+/////
+        // ---------------------------------------------------------
+        // 3. BAŞLANGIÇ KANCASINI (HOOK) ÖNLE VE HATA VEKTÖRÜNÜ YAKALA
+        // ---------------------------------------------------------
+        if (this.packetCount <= 2) {
+            // İlk 2 pakette yumuşatmayı iptal et, doğrudan ham veriye ışınla (Kancayı engeller)
+            Cesium.Cartesian3.ZERO.clone(this.posError);
+            Cesium.Quaternion.IDENTITY.clone(this.oriError);
+            Cesium.Cartesian3.clone(newPos, this.currentVisualPos);
+            Cesium.Quaternion.clone(newQuat, this.currentVisualQuat);
+        } else {
+
+            // 3. Paketten itibaren hata sönümlemesine (Error Blending) başla
+            // --- YENİ MİMARİ: HATA VEKTÖRÜNÜ YAKALA ---
+            // Yeni hedef konumu belirlemeden önce, görsel modelin ne kadar "yanlış" yerde kaldığını buluruz.
+            Cesium.Cartesian3.subtract(this.currentVisualPos, newPos, this.posError);
+            
+            // Açı hatasını bul: oriError = currentVisual * inverse(newQuat)
+            const invNewQuat = Cesium.Quaternion.inverse(newQuat, MovementEngine._sInvNewQuat);
+            Cesium.Quaternion.multiply(this.currentVisualQuat, invNewQuat, this.oriError);
+
+            // Güvenlik Subabı: Eğer ağda devasa bir lag olduysa ve hata 500 metreyi geçtiyse, 
+            // sönümleme yapma, direkt ışınlan (lastik gibi çekilmesini önler).
+            if (Cesium.Cartesian3.magnitude(this.posError) > 500.0) {
+                Cesium.Cartesian3.ZERO.clone(this.posError);
+                Cesium.Quaternion.IDENTITY.clone(this.oriError);
+            }
+        }
+/////
+
         this.lastTrackAngle = this.trackAngle;
         this.lastAlt = alt;
         this.lastHeading = h;
@@ -422,7 +468,9 @@ export class MovementEngine {
         const timeSinceLastUpdate = (Date.now() - this.lastPacketLocalTime) / 1000.0;
         
         // Ağın ritmine göre sönümleme katsayısı (Ortalama sürede hatanın %95'i erir)
-        const decayRate = 3.0 / this.avgPacketDt;
+        // GÜVENLİK SUBABI: Ağ 50ms atsa bile amortisör hatayı en az 0.5 saniyede eritsin ki uçak zıplamasın!
+        const safeBlendDuration = Math.max(this.avgPacketDt, 0.2); // 0.5
+        const decayRate = 3.0 / safeBlendDuration;
         const decayFactor = Math.exp(-decayRate * timeSinceLastUpdate);
 
         // 3. Görsel Konum = Kusursuz Konum + Eriyen Hata
@@ -522,7 +570,9 @@ export class MovementEngine {
 
         // HATA VEKTÖRÜNÜ ERİT (ERROR BLENDING)
         const timeSinceLastUpdate = (Date.now() - this.lastPacketLocalTime) / 1000.0;
-        const decayRate = 3.0 / this.avgPacketDt;
+        // GÜVENLİK SUBABI (Aynı şekilde buraya da ekliyoruz) //0.5 yapabilirsin 
+        const safeBlendDuration = Math.max(this.avgPacketDt, 0.2);
+        const decayRate = 3.0 / safeBlendDuration;
         const decayFactor = Math.exp(-decayRate * timeSinceLastUpdate);
 
         // Açı hatasını sıfıra (IDENTITY) doğru küçült
