@@ -458,7 +458,7 @@ namespace CesiumWpfApp
                             _planeLon = _shipLon + Math.Cos(t16) * r16;
                             _planeLat = _shipLat + Math.Sin(t16) * r16;
                             _planeAlt = 1000;
-                            _suppressPlanePacket = (_simTime >= 10.0 && _simTime <= 15.0);//30.0);
+                            _suppressPlanePacket = (_simTime >= 10.0 && _simTime <= 20.0);//30.0);
                         }
                         break;
 
@@ -472,7 +472,7 @@ namespace CesiumWpfApp
                             _planeLon = centerLon16 + Math.Cos(t16) * r16;
                             _planeLat = centerLat16 + Math.Sin(t16) * r16;
                             _planeAlt = 1000;
-                            _suppressPlanePacket = (_simTime >= 10.0 && _simTime <= 15.0);
+                            _suppressPlanePacket = (_simTime >= 13.0 && _simTime <= 28.0);
                         }
                         break;
 

@@ -53,7 +53,7 @@ export class MovementEngine {
     // VERİ ZAMAN AŞIMI: 15 saniye boyunca veri gelmezse ekstrapolasyon durur.
     // 15 saniye sonra gelen veri forceSync ile aracı yeni konumdan başlatır.
     // 15 saniye içinde gelen veri normal kabul edilir, süzülerek yetişir.
-    private readonly PREDICTION_MAX_SEC = 15.0; // Ekstrapolasyon da 15 saniyeye kadar devam eder
+    private readonly PREDICTION_MAX_SEC = 5.0; // Ekstrapolasyon da 15 saniyeye kadar devam eder
     private readonly MAX_MISSED_PACKETS = 5;
         
     private readonly MAX_ROLL_RAD = Cesium.Math.toRadians(60);   // Maksimum roll: ±60°
@@ -99,6 +99,13 @@ export class MovementEngine {
         this.lastPacketLocalTime = Date.now();
         Cesium.Cartesian3.ZERO.clone(this.posError);
         Cesium.Quaternion.IDENTITY.clone(this.oriError);
+    }
+
+     public isTimeout(): boolean {
+        const localNow = Date.now();
+        const estimatedServerNow = localNow - this.serverClientOffset;
+        const timeSincePacket = this.lastServerTime > 0 ? (estimatedServerNow - this.lastServerTime) / 1000 : 0;
+        return timeSincePacket > this.PREDICTION_MAX_SEC;
     }
 /*
     private getMaxPredictionTime(): number {
