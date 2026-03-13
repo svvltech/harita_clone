@@ -156,9 +156,8 @@ export class MovementEngine {
         // UZUN BOŞLUK KONTROLÜ (Timeout sonrası ilk paket)
         const dtPacket = (previousServerTime > 0) ? (serverTimestamp - previousServerTime) / 1000 : 0;
 
-        if (dtPacket > this.predictionTimeoutSec) {
-            //eskidendi: 15 saniyeden uzun süre veri gelmemiş → aracı yeni konumdan başlat
-            // 5 paketlik süreden uzun süre veri gelmemiş → aracı yeni konumdan başlat
+        if (dtPacket > this.PREDICTION_MAX_SEC) {
+            // 15 saniyeden uzun süre veri gelmemiş → aracı yeni konumdan başlat
             console.log(`[MovementEngine] ${dtPacket.toFixed(1)}s veri boşluğu → ForceSync yapılıyor.`);
             this.forceSync(lon, lat, alt, speed, h, p, r);
             return; // Bu paket işlendi (forceSync ile), normal akışa geçmeye gerek yok
@@ -400,9 +399,7 @@ export class MovementEngine {
         // Emniyet Kemerleri
         if (dtSincePacket < 0) dtSincePacket = 0;
 
-        // Eskisi: if (dtSincePacket > this.PREDICTION_MAX_SEC) dtSincePacket = this.PREDICTION_MAX_SEC;
-        const timeout = this.predictionTimeoutSec;
-        if (dtSincePacket > timeout) dtSincePacket = timeout; // Tahmini durdur ve uçağı dondur
+        if (dtSincePacket > this.PREDICTION_MAX_SEC) dtSincePacket = this.PREDICTION_MAX_SEC;
 
         // HEADING + TRACK ANGLE TAHMİNİ: Basit ama sağlam ekstrapolasyon
         const targetPos = Cesium.Cartesian3.clone(this.lastRealPos, MovementEngine._sTargetPos);
@@ -565,9 +562,7 @@ export class MovementEngine {
         let dtSincePacket = (estimatedServerNow - this.lastServerTime) / 1000;
         if (dtSincePacket < 0) dtSincePacket = 0;
 
-        // Eskisi: if (dtSincePacket > this.PREDICTION_MAX_SEC) dtSincePacket = this.PREDICTION_MAX_SEC;
-        const timeout = this.predictionTimeoutSec;
-        if (dtSincePacket > timeout) dtSincePacket = timeout; // Dönüşü durdur
+        if (dtSincePacket > this.PREDICTION_MAX_SEC) dtSincePacket = this.PREDICTION_MAX_SEC;
 
         const predictedHeading = this.heading + (this.turnRate * dtSincePacket) + this.orientationOffset;
 
@@ -708,8 +703,7 @@ export class MovementEngine {
         let status = "BEKLENIYOR";
         if (this.lastServerTime === 0) {
             status = "ILK_PAKET";
-        // Eskisi: } else if (timeSincePacket > this.PREDICTION_MAX_SEC) {
-        } else if (timeSincePacket > this.predictionTimeoutSec) {
+        } else if (timeSincePacket > this.PREDICTION_MAX_SEC) {
             status = "TIMEOUT";
         } else if (timeSincePacket > 3.0) {
             status = "UZUN_BOSLUK";
