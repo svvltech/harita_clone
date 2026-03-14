@@ -116,6 +116,10 @@ export class MovementEngine {
         return Math.max(this.avgPacketDt * 5.0, 1.5);
     }
 
+    public setOrientationOffset(offsetRad: number): void {
+        this.orientationOffset = offsetRad;
+    }
+
     /**
      * DİKKAT: Bu fonksiyonu Cesium'un `scene.preUpdate` event'inde HER KAREDE BİR KEZ çağır!
      * Böylece Position ve Orientation fonksiyonları aynı zaman dilimini kullanır, titreme olmaz.
@@ -134,7 +138,7 @@ export class MovementEngine {
      * @param h, p, r : Heading, Pitch, Roll (Radyan cinsinden)
      */
     public onPacketReceived(lon: number, lat: number, alt: number, speed: number, h: number, p: number, r: number, serverTimestamp: number) {
-        // Gelen veriyi bekçi metodundan geçir
+
         if (!this.isValidPacket(lon, lat, alt, speed, h, p, r, serverTimestamp)) {
             return; // Geçersiz paket, işleme devam etme
         }
@@ -175,8 +179,8 @@ export class MovementEngine {
 ////
 
 
-        // 3 saniyeden uzun süredir gelmiyorsa dönüşleri ve dalışları sıfırla,
-        // uçağı sadece ileriye doğru DÜMDÜZ uçur"
+        // 3 saniyeden uzun süredir gelmiyorsa dönüşleri ve dalışları sıfırla,  ??????
+        // uçağı sadece ileriye doğru DÜMDÜZ uçur"                             
         if (dtPacket > 3.0 && previousServerTime > 0) {
             console.log(`[MovementEngine] ${dtPacket.toFixed(1)}s boşluk → Tahmin verileri sıfırlanıyor.`);
             this.turnRate = 0;
@@ -193,7 +197,7 @@ export class MovementEngine {
         const newPos = Cesium.Cartesian3.fromDegrees(lon, lat, alt, Cesium.Ellipsoid.WGS84, MovementEngine._sNewPos);
         
         // ONCE FİZİK VE DÖNÜŞ HIZI HESAPLAMALARINI YAP!
-        // 2. Heading + TurnRate + Speed hesapla
+        // 2. trackTurnRate + turnRate + Speed hesapla
         if (dtPacket > 0.01 && previousServerTime > 0) {
                        
             // İki paket arasındaki yer değiştirme vektörü (ECEF)
@@ -204,7 +208,7 @@ export class MovementEngine {
             const localDiff = Cesium.Matrix4.multiplyByPointAsVector(invEnu, diff, MovementEngine._sTrackEnu);
 
 
-            // GÜRÜLTÜ FİLTRESİ (Mesafe Kontrolü)
+            // --- trackTurnRate hesabı ---
             const moveDist = Cesium.Cartesian3.magnitude(localDiff);
             let rawTrackTurnRate = 0;
 
@@ -222,9 +226,11 @@ export class MovementEngine {
             // 3. NORMAL UÇUŞ
             else {
                 // Mesafe yeterince uzun, gerçek ve pürüzsüz açıyı hesapla
-                this.trackAngle = Math.atan2(localDiff.x, localDiff.y); 
+                this.trackAngle = Math.atan2(localDiff.x, localDiff.y); //Doğuya ne kadar gittim? = X, Kuzeye ne kadar gittim? = Y 
                 
+                // KRİTİK DÜZELTME: 3. paketten önce dönüş hızı (kavis) HESAPLANAMAZ!
                 if (this.packetCount > 2) {
+                    // Track bazlı dönüş hızı (Manevra tahmini için)
                     let deltaT = this.trackAngle - this.lastTrackAngle;
                     if (deltaT > Math.PI) deltaT -= Math.PI * 2;
                     if (deltaT < -Math.PI) deltaT += Math.PI * 2;
@@ -232,13 +238,13 @@ export class MovementEngine {
                 }
             }          
             
+            // --- turnRate hesabı ---
             let rawTurnRate = 0;
             if (this.packetCount > 2) {
-                // turnRate hesabı - Belki yönelim için kullanılır ?? 
+                // turnRate hesabı - yönelim için kullanılır  
                 let deltaH = h - this.lastHeading;
                 if (deltaH > Math.PI) deltaH -= Math.PI * 2;
                 if (deltaH < -Math.PI) deltaH += Math.PI * 2;
-                //this.turnRate = deltaH / dtPacket;
                 rawTurnRate = deltaH / dtPacket;
             }
 
@@ -262,9 +268,7 @@ export class MovementEngine {
 
 
         //////// HİÇ YOKTU
-        // ---------------------------------------------------------
         // 2. SUNUCU VERİSİNİ EZ, FİZİKSEL YATIS (ROLL) AÇISINI BUL
-        // ---------------------------------------------------------
         let physicsRoll = r; // Başlangıçta sunucudan geleni al
         let physicsPitch = p;
 
@@ -286,9 +290,7 @@ export class MovementEngine {
         const newQuat = Cesium.Transforms.headingPitchRollQuaternion(newPos, MovementEngine._sHpr, Cesium.Ellipsoid.WGS84, Cesium.Transforms.eastNorthUpToFixedFrame, MovementEngine._sNewQuat);
 
 /////
-        // ---------------------------------------------------------
         // 3. BAŞLANGIÇ KANCASINI (HOOK) ÖNLE VE HATA VEKTÖRÜNÜ YAKALA
-        // ---------------------------------------------------------
         if (this.packetCount <= 2) {
             // İlk 2 pakette yumuşatmayı iptal et, doğrudan ham veriye ışınla (Kancayı engeller)
             Cesium.Cartesian3.ZERO.clone(this.posError);
@@ -328,9 +330,6 @@ export class MovementEngine {
         Cesium.Quaternion.clone(newQuat, this.targetQuat);
     }
 
-    public setOrientationOffset(offsetRad: number): void {
-        this.orientationOffset = offsetRad;
-    }
 
 
     /*
@@ -487,7 +486,7 @@ export class MovementEngine {
         // Ağın ritmine göre sönümleme katsayısı (Ortalama sürede hatanın %95'i erir)
         // GÜVENLİK SUBABI: Ağ 50ms atsa bile amortisör hatayı en az 0.5 saniyede eritsin ki uçak zıplamasın!
         const safeBlendDuration = Math.max(this.avgPacketDt, 0.2); // 0.5
-        const decayRate = 3.0 / safeBlendDuration;
+        const decayRate = 3.0 / safeBlendDuration; // Sönümleme Oranı 
         const decayFactor = Math.exp(-decayRate * timeSinceLastUpdate);
 
         // 3. Görsel Konum = Kusursuz Konum + Eriyen Hata
@@ -555,6 +554,8 @@ export class MovementEngine {
         return Cesium.Quaternion.clone(this.currentVisualQuat, result);
     }
 */
+    
+    // HEADING + ROLL + PITCH EKSTRAPOLASYONU
     public getLatestOrientation(result: Cesium.Quaternion): Cesium.Quaternion {
 
         const localNow = Date.now();
@@ -564,6 +565,7 @@ export class MovementEngine {
 
         if (dtSincePacket > this.PREDICTION_MAX_SEC) dtSincePacket = this.PREDICTION_MAX_SEC;
 
+        // Heading'i turnRate ile tahmin et (pozisyon için trackAngle, görsel için heading)
         const predictedHeading = this.heading + (this.turnRate * dtSincePacket) + this.orientationOffset;
 
         // ROLL ve PITCH: Her zaman fizik-bazlı hesaplama
@@ -573,13 +575,18 @@ export class MovementEngine {
         const predictedPitch = (this.speed > 0.5) ? Math.atan2(this.vz, this.speed) : 0;
         
 
+        // Fiziksel sınır clamping
+        // Değer eğer minimumdan (negatif) küçükse, taban sınırının altına inmesini engeller.
+        // Fizik formülü ne derse desin, senin kanat yatırma sınırın sağa 60, sola 60 derecedir (MAX_ROLL_RAD). Daha fazla yatamazsın
         const clampedRoll = Math.max(-this.MAX_ROLL_RAD, Math.min(this.MAX_ROLL_RAD, predictedRoll));
         const clampedPitch = Math.max(-this.MAX_PITCH_RAD, Math.min(this.MAX_PITCH_RAD, predictedPitch));
 
+        // Tahmin edilen HPR ile yeni hedef quaternion oluştur
         MovementEngine._sHpr.heading = predictedHeading;
         MovementEngine._sHpr.pitch = clampedPitch;
         MovementEngine._sHpr.roll = clampedRoll;
         
+        // Modelin ekrandaki konumunda ENU çerçevesinden quaternion hesapla
         const predictedQuat = Cesium.Transforms.headingPitchRollQuaternion(
             this.currentVisualPos, MovementEngine._sHpr,
             Cesium.Ellipsoid.WGS84, Cesium.Transforms.eastNorthUpToFixedFrame,
@@ -594,6 +601,7 @@ export class MovementEngine {
         const decayFactor = Math.exp(-decayRate * timeSinceLastUpdate);
 
         // Açı hatasını sıfıra (IDENTITY) doğru küçült
+        // slerp : İki yön arasındaki en kısa yolu izleyen küresel yumuşatma fonksiyonudur.
         const decayedOriError = Cesium.Quaternion.slerp(Cesium.Quaternion.IDENTITY, this.oriError, decayFactor, MovementEngine._sDecayedOriError);
         
         // Görsel Yönelim = Eriyen Hata * Kusursuz Yönelim
