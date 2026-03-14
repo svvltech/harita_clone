@@ -14,6 +14,11 @@ export class MovementEngine {
     private heading: number = 0;     // Son gelen heading (radyan)
     private lastHeading: number = 0; // Bir önceki paketin heading'i (turnRate hesabı için)
     private turnRate: number = 0;    // Dönüş hızı (rad/s) — ardışık heading farkından
+
+    // YENİ: Evrensel (Generic) açısal hızlar
+    private pitchRate: number = 0; // rad/s
+    private rollRate: number = 0;  // rad/s
+
     private speed: number = 0;       // Yatay hız büyüklüğü (m/s) — ECEF vektöründen
     private packetCount: number = 0; // Gelen paket sayısı — ilk 2 pakete kadar tahmin yapılmaz
 
@@ -185,6 +190,8 @@ export class MovementEngine {
             console.log(`[MovementEngine] ${dtPacket.toFixed(1)}s boşluk → Tahmin verileri sıfırlanıyor.`);
             this.turnRate = 0;
             this.trackTurnRate = 0;
+            this.pitchRate = 0;
+            this.rollRate = 0;
             this.vz = 0;
             // packetCount'u 1 yaparak sonraki pakette normal hesaplama başlamasını sağla
             this.packetCount = 1;
@@ -236,16 +243,55 @@ export class MovementEngine {
                     if (deltaT < -Math.PI) deltaT += Math.PI * 2;
                     rawTrackTurnRate = deltaT / dtPacket;
                 }
-            }          
+            }       
             
+            // İrtifa farkını geçen süreye bölüyoruz
+            this.vz = (alt - this.lastAlt) / dtPacket;
+            // Gereksiz titremeyi (jitter) önlemek için dikey hızı biraz sönümleyebilirsin (opsiyonel)
+            // this.vz = this.vz * 0.8 + (newVz * 0.2);
+            
+
+            // 🔽🔽🔽 TEST KODU BAŞLANGICI (CANLIYA ÇIKARKEN BU BLOĞU SİL) 🔽🔽🔽
+            // Eğer sunucu p ve r değerlerini 0 gönderiyorsa ve araç hareket ediyorsa
+            // (Sadece testler için C# verisini eziyoruz)
+            if (p === 0 && r === 0 && speed > 1.0) {
+                r = Math.atan(speed * this.turnRate / this.GRAVITY);
+                p = Math.atan2(this.vz, speed);
+                
+                // Limitleri (Clamp) uygula: 60 derece yatış (1.047 rad), 45 derece dalış (0.785 rad)
+                r =  Math.max(-this.MAX_ROLL_RAD, Math.min(this.MAX_ROLL_RAD, r));
+                p = Math.max(-this.MAX_PITCH_RAD, Math.min(this.MAX_PITCH_RAD, p));
+                console.log("TEST KODU AKTİF");
+            }
+            else{
+                console.log("TEST KODU PASİF");
+            }
+            // 🔼🔼🔼 TEST KODU BİTİŞİ 🔼🔼🔼
+
+
             // --- turnRate hesabı ---
             let rawTurnRate = 0;
+            let rawPitchRate = 0;
+            let rawRollRate = 0;
+
             if (this.packetCount > 2) {
-                // turnRate hesabı - yönelim için kullanılır  
+                // YAW (Heading) Hızı  
                 let deltaH = h - this.lastHeading;
                 if (deltaH > Math.PI) deltaH -= Math.PI * 2;
                 if (deltaH < -Math.PI) deltaH += Math.PI * 2;
                 rawTurnRate = deltaH / dtPacket;
+
+                // PITCH (Yunuslama) Hızı
+                let deltaP = p - this.lastPitch;
+                if (deltaP > Math.PI) deltaP -= Math.PI * 2;
+                if (deltaP < -Math.PI) deltaP += Math.PI * 2;
+                rawPitchRate = deltaP / dtPacket;
+
+                // ROLL (Yatış) Hızı
+                let deltaR = r - this.lastRoll;
+                if (deltaR > Math.PI) deltaR -= Math.PI * 2;
+                if (deltaR < -Math.PI) deltaR += Math.PI * 2;
+                rawRollRate = deltaR / dtPacket;
             }
 
             // --- LOW-PASS FILTER (Hareketli Ortalama) ---
@@ -253,40 +299,20 @@ export class MovementEngine {
             if (this.packetCount <= 3 || dtPacket > 3.0) {
                 this.trackTurnRate = rawTrackTurnRate;
                 this.turnRate = rawTurnRate;
+                this.pitchRate = rawPitchRate;
+                this.rollRate = rawRollRate;
             } else {
                 // Ağdaki anlık kopmalara/patlamalara karşı eski istikrarı %80 koru, yeni hıza %20 güven
                 this.trackTurnRate = (this.trackTurnRate * 0.8) + (rawTrackTurnRate * 0.2);
                 this.turnRate = (this.turnRate * 0.8) + (rawTurnRate * 0.2);
+                this.pitchRate = (this.pitchRate * 0.8) + (rawPitchRate * 0.2);
+                this.rollRate = (this.rollRate * 0.8) + (rawRollRate * 0.2);
             }
-
-            // İrtifa farkını geçen süreye bölüyoruz
-            this.vz = (alt - this.lastAlt) / dtPacket;
-            // Gereksiz titremeyi (jitter) önlemek için dikey hızı biraz sönümleyebilirsin (opsiyonel)
-            // this.vz = this.vz * 0.8 + (newVz * 0.2);
         }
 
-
-
-        //////// HİÇ YOKTU
-        // 2. SUNUCU VERİSİNİ EZ, FİZİKSEL YATIS (ROLL) AÇISINI BUL
-        let physicsRoll = r; // Başlangıçta sunucudan geleni al
-        let physicsPitch = p;
-
-        if (speed > 1.0) {
-            // Uçak hareket ediyorsa, C#'tan gelen 'r' değerini çöpe at, fiziği kullan!
-            physicsRoll = Math.atan(speed * this.turnRate / this.GRAVITY);
-            physicsPitch = Math.atan2(this.vz, speed);
-        }
-        
-        // Sınırları uygula
-        physicsRoll = Math.max(-this.MAX_ROLL_RAD, Math.min(this.MAX_ROLL_RAD, physicsRoll));
-        physicsPitch = Math.max(-this.MAX_PITCH_RAD, Math.min(this.MAX_PITCH_RAD, physicsPitch));
-        ///////
-
-        ///
         MovementEngine._sHpr.heading = h + this.orientationOffset;
-        MovementEngine._sHpr.pitch = physicsPitch;//p;
-        MovementEngine._sHpr.roll = physicsRoll;//r;
+        MovementEngine._sHpr.pitch = p;
+        MovementEngine._sHpr.roll = r;
         const newQuat = Cesium.Transforms.headingPitchRollQuaternion(newPos, MovementEngine._sHpr, Cesium.Ellipsoid.WGS84, Cesium.Transforms.eastNorthUpToFixedFrame, MovementEngine._sNewQuat);
 
 /////
@@ -567,7 +593,14 @@ export class MovementEngine {
 
         // Heading'i turnRate ile tahmin et (pozisyon için trackAngle, görsel için heading)
         const predictedHeading = this.heading + (this.turnRate * dtSincePacket) + this.orientationOffset;
+        const predictedPitch = this.lastPitch + (this.pitchRate * dtSincePacket);
+        const predictedRoll = this.lastRoll + (this.rollRate * dtSincePacket);
 
+        MovementEngine._sHpr.heading = predictedHeading;
+        MovementEngine._sHpr.pitch = predictedPitch;
+        MovementEngine._sHpr.roll = predictedRoll;
+
+        /*
         // ROLL ve PITCH: Her zaman fizik-bazlı hesaplama
         // Koordineli viraj: tan(roll) = V × ω / g — uçak dönerken kanat yatırır
         const predictedRoll = Math.atan(this.speed * this.turnRate / this.GRAVITY);
@@ -585,7 +618,8 @@ export class MovementEngine {
         MovementEngine._sHpr.heading = predictedHeading;
         MovementEngine._sHpr.pitch = clampedPitch;
         MovementEngine._sHpr.roll = clampedRoll;
-        
+        */
+
         // Modelin ekrandaki konumunda ENU çerçevesinden quaternion hesapla
         const predictedQuat = Cesium.Transforms.headingPitchRollQuaternion(
             this.currentVisualPos, MovementEngine._sHpr,
@@ -664,6 +698,8 @@ export class MovementEngine {
         ////
         this.turnRate = 0;
         this.trackTurnRate = 0;
+        this.pitchRate = 0;
+        this.rollRate = 0;
         this.vz = 0;
         this.speed = speed;
         this.lastAlt = alt;

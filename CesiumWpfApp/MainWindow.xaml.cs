@@ -36,7 +36,7 @@ namespace CesiumWpfApp
 
         // Uçak test modu (mevcut switch ile aynı)
         // 0 = Spiral iniş, 1 = Düz çizgi, 2 = Sabit daire
-        private int _planeMovementMode = 25;
+        private int _planeMovementMode = 32;
 
         // ═══════════════════════════════════════════════════════════════
         // SİMÜLASYON VERİLERİ (başlangıç konumları)
@@ -61,6 +61,8 @@ namespace CesiumWpfApp
         private double _planeLon = 26.4485; // 26.445;
         private double _planeLat = 40.5385; // 40.535;
         private double _planeAlt = 300; //500;
+        private double _planePitch = 0.0; // YENİ
+        private double _planeRoll = 0.0;  // YENİ
 
         // Timeout test case'leri için: true iken uçak paketi gönderilmez (veri kesintisi simülasyonu)
         private bool _suppressPlanePacket = false;
@@ -740,6 +742,96 @@ namespace CesiumWpfApp
                         
                         _suppressPlanePacket = false;
                         break;
+
+                    case 30: // TEST 30: GERÇEKÇİ UÇUŞ FİZİĞİ (S-Viraj ve İrtifa Dalgalanması)
+                        double baseSpeed = 200.0; // 200 m/s yatay hız
+                        double angularFreq = 0.2; 
+                        
+                        // 1. ROTA VE YATIŞ (ROLL) 
+                        // S-Virajı için saniyede -0.1 ile +0.1 radyan arası salınım yapan dönüş hızı
+                        double currentTurnRate = 0.1 * Math.Cos(_simTime * angularFreq); 
+                        
+                        // C# tarafında merkezkaç formülü: Roll = atan((V * w) / g)
+                        _planeRoll = Math.Atan((baseSpeed * currentTurnRate) / 9.81);
+                        _planeRoll = Math.Max(-1.047, Math.Min(1.047, _planeRoll)); // Max 60 derece
+
+                        // Yön (Heading) integrali ve konum güncelleme
+                        double simulatedHeading = 0.5 + (0.1 / angularFreq) * Math.Sin(_simTime * angularFreq);
+                        double moveDist = baseSpeed * SIM_TICK;
+                        
+                        _planeLon += (Math.Sin(simulatedHeading) * moveDist) / (111320 * Math.Cos(_planeLat * Math.PI / 180));
+                        _planeLat += (Math.Cos(simulatedHeading) * moveDist) / 110540;
+
+                        // 2. İRTİFA VE YUNUSLAMA (PITCH)
+                        double altAmplitude = 1000;
+                        double altFreq = 0.15;
+                        
+                        // Uçak 1000m ile 3000m arasında inip çıkar
+                        _planeAlt = 2000 + Math.Sin(_simTime * altFreq) * altAmplitude;
+                        
+                        // Dikey hız (Vz) hesabı (Sinüsün türevi Cos)
+                        double currentVz = altAmplitude * altFreq * Math.Cos(_simTime * altFreq);
+                        
+                        // Pitch formülü: atan2(Vz, V)
+                        _planePitch = Math.Atan2(currentVz, baseSpeed);
+                        _planePitch = Math.Max(-0.785, Math.Min(0.785, _planePitch)); // Max 45 derece dalış
+                        break;
+
+                    case 31: // TEST 31: SABİT DAİRE (Koordineli Dönüş - Sabit Yatış Açısı)
+                        // Uçak sabit bir hızla ve sabit bir yarıçapla geminin etrafında döner.
+                        // Merkezkaç kuvvetine karşı koymak için daire boyunca hep aynı açıyla yan yatar.
+
+                        double radius31 = 0.01; // Derece cinsinden yarıçap (~1.1 km)
+                        double w31 = 0.15;      // Saniyede 0.15 radyanlık sabit dönüş hızı (sabit kavis)
+                        double angle31 = _simTime * w31;
+
+                        // 1. KONUM GÜNCELLEMESİ
+                        _planeLon = _shipLon + Math.Cos(angle31) * radius31;
+                        _planeLat = _shipLat + Math.Sin(angle31) * radius31;
+                        _planeAlt = 1500; // İrtifa sabit
+
+                        // 2. FİZİK (ROLL VE PITCH) HESAPLAMASI
+                        // Yarıçapı metreye çevir (1 derece ortalama 111.32 km'dir)
+                        double radiusInMeters = radius31 * 111320.0 * Math.Cos(_shipLat * Math.PI / 180);
+                        double speed31 = radiusInMeters * w31; // Çizgisel Hız = Yarıçap * Açısal Hız (V = R * w)
+
+                        // Sabit Yatış (Roll) Formülü: atan((V * w) / g)
+                        _planeRoll = Math.Atan((speed31 * w31) / 9.81);
+
+                        // Limitleri uygula (Maks 60 derece = 1.047 radyan)
+                        _planeRoll = Math.Max(-1.047, Math.Min(1.047, _planeRoll));
+
+                        // İrtifa değişmediği için (düz uçuş) yunuslama (Pitch) sıfır kalır
+                        _planePitch = 0.0;
+                        break;
+
+                    case 32: // TEST 32: KAVİSTE VERİ KESİNTİSİ (Ekstrapolasyon Testi)
+                        // Uçak sabit daire çizerken 8 saniyelik bir veri kopması yaşanır.
+                        // Beklenti: Motor yatış açısını (Roll) ve dönüş kavisini 8 sn boyunca 
+                        // kusursuz bir şekilde simüle etmeye devam eder.
+
+                        double radius32 = 0.01;
+                        double w32 = 0.15;
+                        double angle32 = _simTime * w32;
+
+                        // Konum hesaplama
+                        _planeLon = _shipLon + Math.Cos(angle32) * radius32;
+                        _planeLat = _shipLat + Math.Sin(angle32) * radius32;
+                        _planeAlt = 1500;
+
+                        // Fizik hesaplama
+                        double radiusInMeters32 = radius32 * 111320.0 * Math.Cos(_shipLat * Math.PI / 180);
+                        double speed32 = radiusInMeters32 * w32;
+
+                        // Sabit Yatış
+                        _planeRoll = Math.Atan((speed32 * w32) / 9.81);
+                        _planeRoll = Math.Max(-1.047, Math.Min(1.047, _planeRoll));
+                        _planePitch = 0.0;
+
+                        // 10. ile 18. saniyeler arasında PAKET GÖNDERME (8 saniye kopukluk)
+                        _suppressPlanePacket = (_simTime >= 20.0 && _simTime <= 28.0);
+                        break;
+
                     default: // SPİRALDEN SABİT YÖRÜNGE (İniş yerine belirli bir irtifada dönme)
                         double startAlt = 300.0;
                         double targetAlt = 100.0; // Bu irtifada durup sadece dönecek
@@ -809,9 +901,15 @@ namespace CesiumWpfApp
                     double plH = Math.Atan2(plVx, plVy);
                     if (plH < 0) plH += 2 * Math.PI;
 
+                    if (_planeMovementMode != 30 || _planeMovementMode != 31 || _planeMovementMode != 32) 
+                    {
+                        _planePitch = 0.0;
+                        _planeRoll = 0.0;
+                    }
+
                     await hub.Clients.All.SendAsync("EntityPositionUpdated",
                         "PLANE_01", _planeLon, _planeLat, _planeAlt,
-                        plSpd, plH, 0.0, 0.0, (double)now);
+                        plSpd, plH, _planePitch, _planeRoll, (double)now);
 
                     _prevPlaneLon = _planeLon; _prevPlaneLat = _planeLat; _prevPlaneAlt = _planeAlt;
                     _lastPlaneSend = now;
