@@ -277,7 +277,7 @@ export const addLandingPlane = (): void => {
         offset: new Cesium.HeadingPitchRange(0, Cesium.Math.toRadians(-45), 800) // 5000 -> 1200 (Daha yakın takip)
     });
 
-///////////////
+    ///////////////
     // ═══════════════════════════════════════════════
     // HAM VERİ KARŞILAŞTIRMA (Engine'siz kırmızı nokta)
     // ═══════════════════════════════════════════════
@@ -315,6 +315,7 @@ export const addLandingPlane = (): void => {
     // Ham veri izi (kırmızı)
     const rawHistory: Cesium.Cartesian3[] = [];
     let lastRawTime = 0;
+    /*
     viewer.entities.add({
         name: "Ham Veri İzi",
         polyline: {
@@ -341,8 +342,63 @@ export const addLandingPlane = (): void => {
             }),
         }
     });
-    
-    };
+    */
+    viewer.entities.add({
+        name: "Ham Veri İzi",
+        polyline: {
+            positions: new Cesium.CallbackProperty(() => {
+                
+                const now = performance.now();
+                
+                // Motor tanımlıysa motorun zekasını ham veri izi için de kullanalım
+                if (planeEngine) {
+                    
+                    // 1. DURUM: BAĞLANTI KOPTU (Timeout)
+                    // Ham veri donar. Kırmızı izi silme, ekranda bırak.
+                    if (planeEngine.isTimeout()) {
+                        return rawHistory;
+                    }
+
+                    // 2. DURUM: NORMAL AKIŞ VEYA YENİDEN DOĞUŞ
+                    if (now - lastRawTime > 500) {
+                        const engineInfo = planeEngine.getDebugInfo();
+                        const currentRawPos = Cesium.Cartesian3.clone(rawPlanePos);
+
+                        // Ham veri sıfır (0,0,0) değilse işlem yap
+                        if (Cesium.Cartesian3.magnitude(currentRawPos) > 0) {
+                            
+                            // VERİ GERİ GELDİ! (Motor ForceSync yaptı)
+                            // Sarı çizgide olduğu gibi kırmızı çizgiyi de anında sil ve yeni yerden başlat
+                            if (engineInfo.packetCount === 0) {
+                                rawHistory.length = 0; 
+                                rawHistory.push(currentRawPos); 
+                            } 
+                            // NORMAL UÇUŞ (Bağlantı var)
+                            else {
+                                const lastPos = rawHistory[rawHistory.length - 1];
+                                if (!lastPos || Cesium.Cartesian3.distance(lastPos, currentRawPos) > 0.5) {
+                                    rawHistory.push(currentRawPos);
+                                    
+                                    // Bellek yönetimi
+                                    if (rawHistory.length > 200) rawHistory.shift();
+                                }
+                            }
+                        }
+                        lastRawTime = now;
+                    }
+                }
+                return rawHistory;
+            }, false),
+            width: 2,
+            material: new Cesium.PolylineDashMaterialProperty({
+                color: Cesium.Color.RED.withAlpha(0.7),
+                dashLength: 8,
+                gapColor: Cesium.Color.TRANSPARENT
+            }),
+        }
+    });
+
+};
 
 /**
 * Pisti tek bir vücut olarak hareket ettiren ana "Konteynır"

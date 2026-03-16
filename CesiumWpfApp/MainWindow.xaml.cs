@@ -36,7 +36,7 @@ namespace CesiumWpfApp
 
         // Uçak test modu (mevcut switch ile aynı)
         // 0 = Spiral iniş, 1 = Düz çizgi, 2 = Sabit daire
-        private int _planeMovementMode = 16;
+        private int _planeMovementMode = 32;
 
         // ═══════════════════════════════════════════════════════════════
         // SİMÜLASYON VERİLERİ (başlangıç konumları)
