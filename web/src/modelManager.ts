@@ -221,52 +221,43 @@ export const addLandingPlane = (): void => {
     const planeHistory: Cesium.Cartesian3[] = [];
     let lastRecordTime = 0;
 
-    viewer.entities.add({
+   viewer.entities.add({
         name: "Uçak İzi",
         polyline: {
             positions: new Cesium.CallbackProperty(() => {
                 const now = performance.now();
-                if (planeEngine && now - lastRecordTime > 500) { // Her 0.5s'de bir nokta kaydet
-                    const currentPos = planeEngine.getLatestPosition(new Cesium.Cartesian3());
-                    if (currentPos) {
-                        // Bir önceki noktaya çok yakınsa kaydetme (gereksiz yükü önler)
-                        const lastPos = planeHistory[planeHistory.length - 1];
-                        /*
-                        if (!lastPos || Cesium.Cartesian3.distance(lastPos, currentPos) > 1.0) {
-                            planeHistory.push(Cesium.Cartesian3.clone(currentPos));
-                            // Bellek yönetimi: Son 200 noktayı tut (yaklaşık 1.5 - 2 dakika)
-                            if (planeHistory.length > 200) planeHistory.shift();
-                        }
-                        */
-                        if (!lastPos) {
-                            planeHistory.push(Cesium.Cartesian3.clone(currentPos));
-                        } else {
-                            // 1. İki nokta arasındaki mesafeyi bul
-                            const dist = Cesium.Cartesian3.distance(lastPos, currentPos);
-                            // 2. Geçen süreyi saniyeye çevir
-                            const dtSec = (now - lastRecordTime) / 1000.0;
-                            // 3. Bu noktanın çizilme hızını (m/s) hesapla
-                            const currentDrawSpeed = dist / dtSec;
-                            
-                            // ════════════════════════════════════════════════════
-                            // DİNAMİK KONTROL: Taşıtın kendi profil sınırını kullan
-                            // ════════════════════════════════════════════════════
-                            const jumpLimit = /*PLANE_LIMITS.maxJumpDistancePerSecond || */ 1000;
-
-                            if (currentDrawSpeed > jumpLimit) {
-                                // Çizim hızı fiziksel limiti aştı, bu bir ışınlanmadır!
-                                planeHistory.length = 0; // Geçmişi sil, bağı kopar
-                                planeHistory.push(Cesium.Cartesian3.clone(currentPos));  // Yeni noktadan iz bırakmaya başla
-                            } 
-                            else if (dist > 0.5) {
-                                // Normal hızda uçuş, noktayı ekle
-                                planeHistory.push(Cesium.Cartesian3.clone(currentPos));
-                                if (planeHistory.length > 200) planeHistory.shift();
-                            }
-                        }                      
-                        
+                if (planeEngine) {
+                    
+                    // 1. DURUM: BAĞLANTI KOPTU (5 Saniye Geçti)
+                    // Uçak dondu. Eski izi SİLME, sadece yeni nokta eklemeyi durdur ve donuk izi ekranda tut.
+                    if (planeEngine.isTimeout()) {
+                        return planeHistory; 
                     }
-                    lastRecordTime = now;
+
+                    // 2. DURUM: NORMAL AKIŞ VEYA YENİDEN DOĞUŞ
+                    if (now - lastRecordTime > 500) { // Her 0.5s'de bir nokta kaydet
+                        const currentPos = planeEngine.getLatestPosition(new Cesium.Cartesian3());
+                        const engineInfo = planeEngine.getDebugInfo();
+
+                        if (currentPos) {
+                            // VERİ GERİ GELDİ! (Motor ForceSync yaptı ve paketi sıfırladı)
+                            if (engineInfo.packetCount === 0) {
+                                planeHistory.length = 0; // Eski donuk izi ŞİMDİ sil
+                                planeHistory.push(Cesium.Cartesian3.clone(currentPos)); // Yeni konumdan taptaze bir iz başlat
+                            } 
+                            else {
+                                // NORMAL UÇUŞ (Bağlantı var, uçak ilerliyor)
+                                const lastPos = planeHistory[planeHistory.length - 1];
+                                if (!lastPos || Cesium.Cartesian3.distance(lastPos, currentPos) > 0.5) {
+                                    planeHistory.push(Cesium.Cartesian3.clone(currentPos));
+                                    
+                                    // Bellek yönetimi: Sınırı koru
+                                    if (planeHistory.length > 200) planeHistory.shift();
+                                }
+                            }
+                        }
+                        lastRecordTime = now;
+                    }
                 }
                 return planeHistory;
             }, false),
@@ -278,6 +269,7 @@ export const addLandingPlane = (): void => {
             }),
         }
     });
+
 
     // Uçağa odaklan ama kilitleme (Haritanın dönmesini engeller)
     viewer.flyTo(planeEntity, {
