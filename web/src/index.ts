@@ -492,6 +492,13 @@ async function initializeCesium() {
             createBuildTimeStressTestUI();
         } catch (e) { console.warn('stres manager yüklenemedi:', e); }
 */
+
+        try {
+            const { ucusRotasiEkle1  ,ucusRotasiEkle2} = await import('./polyline_work/ucusRotasi');
+            await ucusRotasiEkle1();
+            await ucusRotasiEkle2();
+        } catch (e) { console.warn('ucusRotasiEkle yüklenemedi:', e); }
+
         console.log('✅ Ready! SignalR connected. Harita managers loaded.');
     } catch (error) {
         console.error('Cesium error:', error);
