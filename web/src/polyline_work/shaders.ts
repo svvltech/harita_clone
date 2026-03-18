@@ -620,6 +620,139 @@ export class ArrowEdgeMaterialPropertyIlk implements Cesium.MaterialProperty {
         );
     }
 }
+
+
+export class ArrowEdgeMaterialProperty implements Cesium.MaterialProperty {
+    private _arrowColor: Cesium.Property;
+    private _dashColor: Cesium.Property;
+    private _definitionChanged: Cesium.Event;
+
+    constructor(
+        arrowColor: Cesium.Color,
+        dashColor: Cesium.CallbackProperty
+    ) {
+        this._arrowColor = new Cesium.ConstantProperty(arrowColor);
+        this._dashColor = dashColor;
+        this._definitionChanged = new Cesium.Event();
+
+        if (!(Cesium.Material as any)._materialCache._materials["ArrowEdgeMaterialPropertyTransparentEdge"]) {
+            (Cesium.Material as any)._materialCache.addMaterial("ArrowEdgeMaterialPropertyTransparentEdge", {
+                fabric: {
+                    type: "ArrowEdgeMaterialPropertyTransparentEdge",
+                    uniforms: {
+                        arrowColor: Cesium.Color.WHITE,
+                        dashColor: Cesium.Color.fromBytes(239, 12, 249, 255),
+                        dashLength: 48.0,
+                        arrowLength: 16.0,
+                        minV: 0.40, // Alt sınır
+                        maxV: 0.60  // Üst sınır
+                    },
+                    source: `
+                        uniform vec4 arrowColor;   
+                        uniform vec4 dashColor;
+                        uniform float dashLength;
+                        uniform float arrowLength;
+                        uniform float minV;
+                        uniform float maxV;
+                        in float v_polylineAngle;
+
+                        mat2 rotate(float rad) {
+                            float c = cos(rad);
+                            float s = sin(rad);
+                            return mat2(c, s, -s, c);
+                        }
+
+                        float modp(float x, float len) {
+                            float m = mod(x, len);
+                            return m < 0.0 ? m + len : m;
+                        }
+
+                        float arrowMask(float u, float v) {
+                            const float bodyFrac = 0.30;
+                            const float bodyH    = 0.35;
+                            float halfBody = bodyH * 0.5;
+                            float c = abs(v - 0.5);
+
+                            float inBodyU = 1.0 - step(bodyFrac, u);
+                            float inBodyV = 1.0 - step(halfBody, c);
+                            float alphaBody = inBodyU * inBodyV;
+
+                            float b = clamp((u - bodyFrac) / max(1.0 - bodyFrac, 1e-6), 0.0, 1.0);
+                            float halfHead = 0.5 * (1.0 - b);
+                            float inHeadU  = step(bodyFrac, u);
+                            float inHeadV  = 1.0 - step(halfHead, c);
+                            float alphaHead = inHeadU * inHeadV;
+
+                            return clamp(max(alphaBody, alphaHead), 0.0, 1.0);
+                        }
+
+                        czm_material czm_getMaterial(czm_materialInput materialInput) {
+                            czm_material material = czm_getDefaultMaterial(materialInput);
+                            vec2 st = materialInput.st;
+
+                            vec2 pos = rotate(v_polylineAngle) * gl_FragCoord.xy;
+                            float pixelDashLength  = max(dashLength  * czm_pixelRatio, 1.0);
+                            float pixelArrowLength = max(arrowLength * czm_pixelRatio, 1.0);
+                            float pixelSegmentLength = pixelDashLength + pixelArrowLength;
+
+                            float xInSeg = modp(pos.x, pixelSegmentLength);
+
+                            float inArrow = step(pixelDashLength, xInSeg);
+                            float u = clamp((xInSeg - pixelDashLength) / pixelArrowLength, 0.0, 1.0);
+                            float v = st.t;
+                            float a = inArrow * arrowMask(u, v);
+
+                            vec4 dashCol = dashColor;
+                            vec4 arrowCol = arrowColor;
+
+                            vec4 outColor = mix(dashCol, arrowCol, a);
+
+                            // Sadece arka plan (dash) kısmı için V aralığı dışında alpha sıfırla
+                            float vClip = step(minV, v) * step(v, maxV);
+                            if (a <= 0.0) {
+                                outColor.a *= vClip;
+                            }
+
+                            outColor = czm_antialias(vec4(0.0), outColor, outColor, min(st.t, 1.0 - st.t));
+                            outColor = czm_gammaCorrect(outColor);
+
+                            material.diffuse = outColor.rgb;
+                            material.alpha   = outColor.a;
+                            return material;
+                        }
+                    `
+                },
+                translucent: () => true
+            });
+        }
+    }
+
+    get isConstant(): boolean {
+        const ac = (this._arrowColor as any)?.isConstant ?? true;
+        const dc = (this._dashColor as any)?.isConstant ?? true;
+        return ac && dc;
+    }
+
+    get definitionChanged(): Cesium.Event { return this._definitionChanged; }
+    getType(_time: Cesium.JulianDate): string { return "ArrowEdgeMaterialPropertyTransparentEdge"; }
+
+    getValue(time: Cesium.JulianDate, result?: any): any {
+        if (!result) result = {};
+        result.arrowColor = this._arrowColor.getValue(time);
+        result.dashColor = this._dashColor.getValue(time);
+        return result;
+    }
+
+    equals(other: Cesium.MaterialProperty): boolean {
+        return (
+            other instanceof ArrowEdgeMaterialProperty &&
+            (other as any)._arrowColor?.equals?.(this._arrowColor) === true &&
+            (other as any)._dashColor?.equals?.(this._dashColor) === true
+        );
+    }
+}
+
+
 /*
 
 export class ChevronArrowEdgeMaterialProperty implements Cesium.MaterialProperty {

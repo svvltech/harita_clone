@@ -8,6 +8,7 @@ import {
 } from 'cesium';
 import * as signalR from '@microsoft/signalr';
 import { setViewer } from './harita';
+import { ucusRotasiEkle, ucusRotasiEkleIlk } from './polyline_work/ucusRotasi';
 
 Ion.defaultAccessToken = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJqdGkiOiIzYzczNWQwYy1iNmE4LTRiYWYtOTlmNi02OGFlOTM4YmUyYmEiLCJpZCI6MjY3NzM2LCJpYXQiOjE3NDQyMzE2ODN9.U72KcRtBEhdciByjNEOXCdG2T_rogCDdwziOsx4b6yg';
 
@@ -495,8 +496,9 @@ async function initializeCesium() {
 
         try {
             const { ucusRotasiEkle1  ,ucusRotasiEkle2} = await import('./polyline_work/ucusRotasi');
-            await ucusRotasiEkle1();
+            //await ucusRotasiEkle1();
             await ucusRotasiEkle2();
+            //await ucusRotasiEkle();
         } catch (e) { console.warn('ucusRotasiEkle yüklenemedi:', e); }
 
         console.log('✅ Ready! SignalR connected. Harita managers loaded.');
