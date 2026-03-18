@@ -150,9 +150,11 @@ export class ArrowEdgeMaterialProperty1 implements Cesium.MaterialProperty {
     }
 }
 
-export class ArrowEdgeMaterialProperty2 implements Cesium.MaterialProperty {
+export class ArrowEdgeMaterialProperty2son implements Cesium.MaterialProperty {
     private _arrowColor: Cesium.Property;
     private _dashColor: Cesium.Property;
+    private _dashLength: number;   // YENİ: Çizgi uzunluğu parametresi
+    private _arrowLength: number;  // YENİ: Ok uzunluğu parametresi
     private _totalLengthMeters: number;
     private _scene: Cesium.Scene;
     private _definitionChanged: Cesium.Event;
@@ -160,11 +162,15 @@ export class ArrowEdgeMaterialProperty2 implements Cesium.MaterialProperty {
     constructor(
         arrowColor: Cesium.Color,
         dashColor: Cesium.CallbackProperty,
+        dashLength: number = 115.0,  // Varsayılan değer (Toplamı 150 yapacak şekilde)
+        arrowLength: number = 35.0,   // Varsayılan değer
         scene: Cesium.Scene,
         totalLengthMeters: number // JS'den gelen gerçek rota uzunluğu
     ) {
         this._arrowColor = new Cesium.ConstantProperty(arrowColor);
         this._dashColor = dashColor;
+        this._dashLength = dashLength;
+        this._arrowLength = arrowLength;
         this._scene = scene;
         this._totalLengthMeters = totalLengthMeters;
         this._definitionChanged = new Cesium.Event();
@@ -176,6 +182,8 @@ export class ArrowEdgeMaterialProperty2 implements Cesium.MaterialProperty {
                     uniforms: {
                         arrowColor: Cesium.Color.WHITE,
                         dashColor: Cesium.Color.fromBytes(239, 12, 249, 255),
+                        dashLength: 115.0, // Shader'a gidecek değişken
+                        arrowLength: 35.0, // Shader'a gidecek değişken
                         repeatCount: 10.0, // ARTIK JS'DEN DİNAMİK OLARAK GELECEK
                         minV: 0.40,
                         maxV: 0.60
@@ -183,6 +191,8 @@ export class ArrowEdgeMaterialProperty2 implements Cesium.MaterialProperty {
                     source: `
                         uniform vec4 arrowColor;   
                         uniform vec4 dashColor;
+                        uniform float dashLength;  // JS'den gelen çizgi uzunluğu
+                        uniform float arrowLength; // JS'den gelen ok uzunluğu
                         uniform float repeatCount; // JS'den gelen kusursuz katsayı
                         uniform float minV;
                         uniform float maxV;
@@ -220,8 +230,13 @@ export class ArrowEdgeMaterialProperty2 implements Cesium.MaterialProperty {
                             // Çünkü s, dünyaya çakılıdır. repeatCount ise pan yaparken sabittir.
                             float xInSeg = modp(s * repeatCount, 1.0);
 
-                            float inArrow = step(0.75, xInSeg); 
-                            float u = clamp((xInSeg - 0.75) / 0.25, 0.0, 1.0);
+                            // --- DİNAMİK ORAN HESAPLAMALARI ---
+                            float totalPixels = dashLength + arrowLength;
+                            float dashRatio = dashLength / totalPixels; // Eski 0.75
+                            float arrowRatio = arrowLength / totalPixels; // Eski 0.25
+
+                            float inArrow = step(dashRatio, xInSeg); 
+                            float u = clamp((xInSeg - dashRatio) / arrowRatio, 0.0, 1.0);
                             float a = inArrow * arrowMask(u, v);
 
                             vec4 outColor = mix(dashColor, arrowColor, a);
@@ -247,6 +262,9 @@ export class ArrowEdgeMaterialProperty2 implements Cesium.MaterialProperty {
         if (!result) result = {};
         result.arrowColor = this._arrowColor.getValue(time);
         result.dashColor = this._dashColor.getValue(time);
+        // Parametreleri GPU'ya iletiyoruz
+        result.dashLength = this._dashLength;
+        result.arrowLength = this._arrowLength;
 
         // --- MATEMATİĞİN KUSURSUZ ÇÖZÜLDÜĞÜ YER ---
 
@@ -271,7 +289,8 @@ export class ArrowEdgeMaterialProperty2 implements Cesium.MaterialProperty {
         const mpp = pixelSize.x;
 
         // 3. 64 piksellik desen (48 çizgi + 16 ok) o an dünyada kaç metreye denk geliyor?
-        const segmentMeters = 150.0 * mpp;
+        const totalPixels = this._dashLength + this._arrowLength;
+        const segmentMeters = totalPixels * mpp;
 
         // 4. Çizginin toplam uzunluğunu desenin boyutuna böl ve shader'a kesin emri ver.
         result.repeatCount = Math.max(this._totalLengthMeters / segmentMeters, 1.0);
@@ -283,6 +302,161 @@ export class ArrowEdgeMaterialProperty2 implements Cesium.MaterialProperty {
         return this === other;
     }
 }
+
+
+export class ArrowEdgeMaterialProperty2 implements Cesium.MaterialProperty {
+    private _arrowColor: Cesium.Property;
+    private _dashColor: Cesium.Property;
+    private _dashLength: number;
+    private _arrowLength: number;
+    private _totalLengthMeters: number;
+    private _positions: Cesium.Cartesian3[]; // Geometriyi takip etmek için ekledik
+    private _scene: Cesium.Scene;
+    private _definitionChanged: Cesium.Event;
+
+    constructor(
+        arrowColor: Cesium.Color,
+        dashColor: Cesium.Property, // CallbackProperty veya ConstantProperty
+        scene: Cesium.Scene,
+        totalLengthMeters: number,
+        positions: Cesium.Cartesian3[], // Rotanın koordinatları
+        dashLength: number = 115.0,
+        arrowLength: number = 35.0
+    ) {
+        this._arrowColor = new Cesium.ConstantProperty(arrowColor);
+        this._dashColor = dashColor;
+        this._scene = scene;
+        this._totalLengthMeters = totalLengthMeters;
+        this._positions = positions;
+        this._dashLength = dashLength;
+        this._arrowLength = arrowLength;
+        this._definitionChanged = new Cesium.Event();
+
+        if (!(Cesium.Material as any)._materialCache._materials["ArrowEdgeMaterialPropertyTransparentEdge"]) {
+           (Cesium.Material as any)._materialCache.addMaterial("ArrowEdgeMaterialPropertyTransparentEdge", {
+                fabric: {
+                    type: "ArrowEdgeMaterialPropertyTransparentEdge",
+                    uniforms: {
+                        arrowColor: Cesium.Color.WHITE,
+                        dashColor: Cesium.Color.PURPLE,
+                        dashLength: 115.0,
+                        arrowLength: 35.0,
+                        repeatCount: 1.0,
+                        minV: 0.40,
+                        maxV: 0.60
+                    },
+                    source: `
+                        uniform vec4 arrowColor;   
+                        uniform vec4 dashColor;
+                        uniform float dashLength;
+                        uniform float arrowLength;
+                        uniform float repeatCount;
+                        uniform float minV;
+                        uniform float maxV;
+
+                        float modp(float x, float len) {
+                            float m = mod(x, len);
+                            return m < 0.0 ? m + len : m;
+                        }
+
+                        float arrowMask(float u, float v) {
+                            const float bodyFrac = 0.35;
+                            const float bodyH    = 0.35;
+                            float halfBody = bodyH * 0.5;
+                            float c = abs(v - 0.5);
+
+                            float inBodyU = 1.0 - step(bodyFrac, u);
+                            float inBodyV = 1.0 - step(halfBody, c);
+                            float alphaBody = inBodyU * inBodyV;
+
+                            float b = clamp((u - bodyFrac) / max(1.0 - bodyFrac, 1e-6), 0.0, 1.0);
+                            float halfHead = 0.5 * (1.0 - b);
+                            float inHeadU  = step(bodyFrac, u);
+                            float inHeadV  = 1.0 - step(halfHead, c);
+                            float alphaHead = inHeadU * inHeadV;
+
+                            return clamp(max(alphaBody, alphaHead), 0.0, 1.0);
+                        }
+
+                        czm_material czm_getMaterial(czm_materialInput materialInput) {
+                            czm_material material = czm_getDefaultMaterial(materialInput);
+                            float s = materialInput.st.s;
+                            float v = materialInput.st.t;
+
+                            float xInSeg = modp(s * repeatCount, 1.0);
+
+                            float totalPixels = dashLength + arrowLength;
+                            float dashRatio = dashLength / totalPixels;
+                            float arrowRatio = arrowLength / totalPixels;
+
+                            float inArrow = step(dashRatio, xInSeg); 
+                            float u = clamp((xInSeg - dashRatio) / max(arrowRatio, 0.001), 0.0, 1.0);
+                            float a = inArrow * arrowMask(u, v);
+
+                            vec4 outColor = mix(dashColor, arrowColor, a);
+                            float vClip = step(minV, v) * step(v, maxV);
+                            
+                            material.diffuse = outColor.rgb;
+                            material.alpha = outColor.a * mix(vClip, 1.0, a); 
+
+                            return material;
+                        }
+                    `
+                },
+                translucent: () => true
+            });
+        }
+    }
+
+    get isConstant(): boolean { return false; }
+    get definitionChanged(): Cesium.Event { return this._definitionChanged; }
+    getType(_time: Cesium.JulianDate): string { return "ArrowEdgeMaterialPropertyTransparentEdge"; }
+
+    getValue(time: Cesium.JulianDate, result?: any): any {
+        if (!result) result = {};
+        result.arrowColor = this._arrowColor.getValue(time);
+        result.dashColor = this._dashColor.getValue(time);
+        result.dashLength = this._dashLength;
+        result.arrowLength = this._arrowLength;
+
+        // --- GÖRSEL DENGE İÇİN "SLANT DISTANCE" HESABI ---
+        let viewDistance = 1000.0;
+        if (this._scene && this._scene.camera) {
+            // Rotanın tam orta noktasını referans alıyoruz
+            if (this._positions && this._positions.length >= 2) {
+                const midIdx = Math.floor(this._positions.length / 2);
+                const referencePoint = this._positions[midIdx];
+                
+                // Kameranın bu noktaya olan gerçek kuş uçuşu mesafesi
+                const distance = Cesium.Cartesian3.distance(this._scene.camera.positionWC, referencePoint);
+                viewDistance = Math.max(distance, 10.0);
+            }
+        }
+
+        const pixelSize = this._scene.camera.frustum.getPixelDimensions(
+            this._scene.drawingBufferWidth,
+            this._scene.drawingBufferHeight,
+            viewDistance,
+            window.devicePixelRatio,
+            new Cesium.Cartesian2()
+        );
+        const mpp = pixelSize.x;
+
+        const totalPixels = this._dashLength + this._arrowLength;
+        const segmentMeters = totalPixels * mpp;
+
+        // Okların her segmentte tam sayı olması için yuvarlama yapıyoruz
+        const rawRepeat = this._totalLengthMeters / segmentMeters;
+        result.repeatCount = Math.max(Math.round(rawRepeat), 1.0);
+
+        return result;
+    }
+
+    equals(other: Cesium.MaterialProperty): boolean {
+        return this === other;
+    }
+}
+
 export class ArrowEdgeMaterialProperty22 implements Cesium.MaterialProperty {
     private _arrowColor: Cesium.Property;
     private _dashColor: Cesium.Property;
@@ -614,7 +788,7 @@ export class ArrowEdgeMaterialPropertyIlk implements Cesium.MaterialProperty {
 
     equals(other: Cesium.MaterialProperty): boolean {
         return (
-            other instanceof ArrowEdgeMaterialProperty2 &&
+            other instanceof ArrowEdgeMaterialPropertyIlk &&
             (other as any)._arrowColor?.equals?.(this._arrowColor) === true &&
             (other as any)._dashColor?.equals?.(this._dashColor) === true
         );
