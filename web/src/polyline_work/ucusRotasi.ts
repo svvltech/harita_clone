@@ -1,5 +1,5 @@
 import * as Cesium from 'cesium';
-import { ArrowEdgeMaterialProperty, ArrowEdgeMaterialProperty1,ArrowEdgeMaterialProperty2, ArrowEdgeMaterialProperty2son, ArrowEdgeMaterialPropertyIlk } from './shaders';
+import { ArrowEdgeMaterialProperty, ArrowEdgeMaterialProperty1,ArrowEdgeMaterialProperty2, ArrowEdgeMaterialProperty2duzgun, ArrowEdgeMaterialProperty2son, ArrowEdgeMaterialPropertyIlk } from './shaders';
 import { viewer } from "../harita";
 
 export const ucusRotasiEkle1 = (): void => {
@@ -85,7 +85,7 @@ export const ucusRotasiEkle2 = (): void => {
         return Cesium.Color.fromBytes(239, 12, 249, 255);
     }, false);
 
-    const materyal = new ArrowEdgeMaterialProperty2(
+    const materyal = new ArrowEdgeMaterialProperty2duzgun(
         Cesium.Color.WHITE,
         dashColor,
         viewer.scene,
@@ -139,7 +139,7 @@ export const ucusRotasiEkle2son = (): void => {
     const ortaNokta = rotaKoordinatlari[Math.floor(rotaKoordinatlari.length / 2)];
 
     // 3. Custom materyalimizi örnekliyoruz
-    const ucusRotasiMateryali = new ArrowEdgeMaterialProperty2son(
+      const ucusRotasiMateryali = new ArrowEdgeMaterialProperty2son(
       okRengi, çizgiRengi, 115.0 ,35.0, viewer.scene, gercekUzunlukMetre);
 
     // 5. Entity'i (Çizgiyi) haritaya ekliyoruz
