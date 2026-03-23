@@ -40,7 +40,7 @@ viewer?.scene.preUpdate.addEventListener(() => {
 // --- DEBUG HUD OVERLAY ---
 let debugHudEl: HTMLDivElement | null = null;
 
-function updateDebugHud(info: { timeSincePacket: number; speed: number; packetCount: number; status: string }) {
+function updateDebugHud(info: { timeSincePacket: number; yatay_Hiz: number; paket_Sayisi: number; status: string }) {
     if (!debugHudEl) {
         debugHudEl = document.createElement("div");
         debugHudEl.id = "debug-hud";
@@ -65,7 +65,7 @@ function updateDebugHud(info: { timeSincePacket: number; speed: number; packetCo
     }
 
     const t = info.timeSincePacket.toFixed(1);
-    const spd = info.speed.toFixed(1);
+    const spd = info.yatay_Hiz.toFixed(1);
 
     // Renk: 0-3s yeşil, 3-15s sarı, 15+s kırmızı
     const barMax = 15;
@@ -84,7 +84,7 @@ function updateDebugHud(info: { timeSincePacket: number; speed: number; packetCo
         <div style="margin-bottom:4px;"><span style="display:inline-block;width:10px;height:10px;border-radius:50%;background:${statusColor};margin-right:6px;"></span><b>${statusLabel}</b></div>
         <div>Son Paket: <b style="color:${barColor}">${t}s</b> once</div>
         <div>Hiz: <b>${spd} m/s</b></div>
-        <div>Paket #${info.packetCount}</div>
+        <div>Paket #${info.paket_Sayisi}</div>
         <div style="margin-top:6px; background:rgba(255,255,255,0.15); border-radius:4px; height:6px; overflow:hidden;">
             <div style="width:${barPct}%; height:100%; background:${barColor}; transition: width 0.2s;"></div>
         </div>
@@ -145,7 +145,7 @@ export const addAircraftCarrier = (): void => {
     shipEntity = viewer.entities.add({
         name: "Uçak Gemisi (Hassas Takip)",
     position: new Cesium.CallbackProperty((time, result) => {
-            const pos = shipEngine?.getLatestPosition(result || new Cesium.Cartesian3());
+            const pos = shipEngine?.Guncel_Konumu_Getir(result || new Cesium.Cartesian3());
             if (!pos) return undefined;
 
             // --- YÜKSEKLİK OFSETİ HESAPLAMA ---
@@ -158,11 +158,11 @@ export const addAircraftCarrier = (): void => {
         }, false) as any,
         /*
         position: new Cesium.CallbackProperty((time, result) => {
-            return shipEngine?.getLatestPosition(result || new Cesium.Cartesian3());
+            return shipEngine?.Guncel_Konumu_Al(result || new Cesium.Cartesian3());
         }, false) as any,
         */
         orientation: new Cesium.CallbackProperty((time, result) => {
-            return shipEngine?.getLatestOrientation(result || new Cesium.Quaternion());
+            return shipEngine?.Guncel_Yonelimi_Getir(result || new Cesium.Quaternion());
         }, false) as any,
         model: {
             uri: "./SampleData/models/AircraftCarrier/tcg_anadolul-400_low_poly.glb",
@@ -181,10 +181,10 @@ export const addLandingPlane = (): void => {
     planeEntity = viewer.entities.add({
         name: "İniş Yapan Uçak (Hassas)",
         position: new Cesium.CallbackProperty((time, result) => {
-            return planeEngine?.getLatestPosition(result || new Cesium.Cartesian3());
+            return planeEngine?.Guncel_Konumu_Getir(result || new Cesium.Cartesian3());
         }, false) as any,
         orientation: new Cesium.CallbackProperty((time, result) => {
-            return planeEngine?.getLatestOrientation(result || new Cesium.Quaternion());
+            return planeEngine?.Guncel_Yonelimi_Getir(result || new Cesium.Quaternion());
         }, false) as any,
         model: {
             uri: "./SampleData/models/Bayraktar/baykar_bayraktar_tb2.glb",
@@ -196,7 +196,7 @@ export const addLandingPlane = (): void => {
         label: {
             text: new Cesium.CallbackProperty((time) => {
                 if (!planeEngine) return "";
-                const pos = planeEngine.getLatestPosition(new Cesium.Cartesian3());
+                const pos = planeEngine.Guncel_Konumu_Getir(new Cesium.Cartesian3());
                 const carto = Cesium.Cartographic.fromCartesian(pos);
                 const altFt = (carto.height * 3.28084).toFixed(0);
                 return `${altFt} ft`;
@@ -232,12 +232,12 @@ export const addLandingPlane = (): void => {
 
                     // 2. DURUM: NORMAL AKIŞ VEYA YENİDEN DOĞUŞ
                     if (now - lastRecordTime > 500) { // Her 0.5s'de bir nokta kaydet
-                        const currentPos = planeEngine.getLatestPosition(new Cesium.Cartesian3());
+                        const currentPos = planeEngine.Guncel_Konumu_Getir(new Cesium.Cartesian3());
                         const engineInfo = planeEngine.getDebugInfo();
 
                         if (currentPos) {
                             // VERİ GERİ GELDİ! (Motor ForceSync yaptı ve paketi sıfırladı)
-                            if (engineInfo.packetCount === 0) {
+                            if (engineInfo.paket_Sayisi === 0) {
                                 planeHistory.length = 0; // Eski donuk izi ŞİMDİ sil
                                 planeHistory.push(Cesium.Cartesian3.clone(currentPos)); // Yeni konumdan taptaze bir iz başlat
                             } 
@@ -365,7 +365,7 @@ export const addLandingPlane = (): void => {
                             
                             // VERİ GERİ GELDİ! (Motor ForceSync yaptı)
                             // Sarı çizgide olduğu gibi kırmızı çizgiyi de anında sil ve yeni yerden başlat
-                            if (engineInfo.packetCount === 0) {
+                            if (engineInfo.paket_Sayisi === 0) {
                                 rawHistory.length = 0; 
                                 rawHistory.push(currentRawPos); 
                             } 
@@ -408,10 +408,10 @@ export const createFlightDeckGroup = () => {
         position: new Cesium.CallbackProperty((time, result) => {
             // BURASI KRİTİK: Buraya senin MovementEngine'inden gelen 
             // ekstrapole edilmiş pist konumunu bağlayacağız.
-            return deckEngine?.getLatestPosition(result || new Cesium.Cartesian3());
+            return deckEngine?.Guncel_Konumu_Getir(result || new Cesium.Cartesian3());
         }, false) as any,
         orientation: new Cesium.CallbackProperty((time, result) => {
-            return deckEngine?.getLatestOrientation(result || new Cesium.Quaternion());
+            return deckEngine?.Guncel_Yonelimi_Getir(result || new Cesium.Quaternion());
         }, false) as any,
     });
 
