@@ -1,65 +1,52 @@
 import * as Cesium from "cesium";
 
-/**
- * Hibrit Hareket Motoru (v2)
- * mvmntgmn0203 mimarisi (Quaternion Slerp, exponential smoothing, scratchpad, server time sync)
- * + movementEngine'den heading+turnRate ile eğrisel pozisyon tahmini
- */
+
 export class MovementEngine {
-    // --- STATE DATA (Sunucudan Gelen Kesin Veriler) ---
+    
     private lastRealPos = new Cesium.Cartesian3();
-    private targetQuat = new Cesium.Quaternion();   // Gidilmesi gereken kesin yönelim
 
-    // --- EĞRİSEL TAHMİN VERİLERİ (heading + turnRate) ---
-    private heading: number = 0;     // Son gelen heading (radyan)
-    private lastHeading: number = 0; // Bir önceki paketin heading'i (turnRate hesabı için)
-    private turnRate: number = 0;    // Dönüş hızı (rad/s) — ardışık heading farkından
-
-    // YENİ: Evrensel (Generic) açısal hızlar
-    private pitchRate: number = 0; // rad/s
-    private rollRate: number = 0;  // rad/s
-
-    private speed: number = 0;       // Yatay hız büyüklüğü (m/s) — ECEF vektöründen
-    private packetCount: number = 0; // Gelen paket sayısı — ilk 2 pakete kadar tahmin yapılmaz
-
-    // --- EKLENEN TAHMİN VERİLERİ ---
     private trackAngle: number = 0;     // Gerçek ilerleme rotası (Fiziksel)
     private lastTrackAngle: number = 0; // Bir önceki rotanın açısı
     private trackTurnRate: number = 0;  // Rota üzerindeki dönüş hızı (rad/s)
 
-    // İniş için veriler
-    private lastAlt: number = 0; // Bir önceki paketteki kesin irtifa
-    private lastPitch: number = 0; 
-    private lastRoll: number = 0;
+    private lastHeading: number = 0; 
+    private turnRate: number = 0;    // Dönüş hızı (rad/s) 
+
+    private lastAlt: number = 0;   // irtifa (m)
+    private lastPitch: number = 0; // yunuslama (rad)
+    private lastRoll: number = 0;  // yatma (rad)
+
+    private pitchRate: number = 0; // rad/s
+    private rollRate: number = 0;  // rad/s
     private vz: number = 0;      // Hesaplanan dikey hız (m/s)
-    
-    // --- VISUAL STATE (Ekranda Görünen Yumuşatılmış Veriler) ---
+
+    private speed: number = 0;       // Yatay hız büyüklüğü (m/s) — ECEF vektöründen
+    private packetCount: number = 0; // Gelen paket sayısı — ilk 2 pakete kadar tahmin yapılmaz
+
+    // visual state
     private currentVisualPos = new Cesium.Cartesian3();
     private currentVisualQuat = new Cesium.Quaternion();
 
-    // --- ZAMAN SENKRONİZASYONU ---
+    // zaman senkronizasyonu
     private lastServerTime: number = 0; 
     private serverClientOffset: number = 0; 
-    private lastFrameTime: number = Date.now(); 
-    private currentFrameDt: number = 0; // Her karede bir önceki kareye göre geçen süre (saniye cinsinden):
 
-    // YENİ: Ağın Ritmi ve Hata Yönetimi
+    // Ağın Ritmi ve Hata Yönetimi
     private lastPacketLocalTime: number = 0; 
     private avgPacketDt: number = 0.2; // Ağın ortalama paket süresi (Varsayılan 200ms)
     private posError = new Cesium.Cartesian3(); // Hedef ile Görsel arasındaki Konum Hatası
     private oriError = new Cesium.Quaternion(); // Hedef ile Görsel arasındaki Açı Hatası
-
-    // --- AYARLAR ---
-    private readonly POS_SMOOTH_SPEED = 2.5; //2.5; //15.0; // Konum süzülme hızı (düşük = yumuşak, gecikme artar)
-    private readonly ORI_SMOOTH_SPEED = 4.0; //4.0; //10.0; // Yönelim süzülme hızı
     
     private orientationOffset: number = 0; // Radyan cinsinden görsel sapma (örn: 180 derece için Math.PI)
 
-    // VERİ ZAMAN AŞIMI: 15 saniye boyunca veri gelmezse ekstrapolasyon durur.
-    // 15 saniye sonra gelen veri forceSync ile aracı yeni konumdan başlatır.
-    // 15 saniye içinde gelen veri normal kabul edilir, süzülerek yetişir.
-    private readonly PREDICTION_MAX_SEC = 5.0; // Ekstrapolasyon da 15 saniyeye kadar devam eder
-    private readonly MAX_MISSED_PACKETS = 5;
+    // VERİ ZAMAN AŞIMI: 
+    // PREDICTION_MAX_SEC saniye boyunca veri gelmezse ekstrapolasyon durur.
+    // PREDICTION_MAX_SEC saniye sonra gelen veri forceSync ile aracı yeni konumdan başlatır.
+    // PREDICTION_MAX_SEC saniye içinde gelen veri normal kabul edilir, süzülerek yetişir.
+    private readonly PREDICTION_MAX_SEC = 5.0;
+    
+    //kullanılmadı daha
+    private readonly MAX_MISSED_PACKETS = 5; 
 
     private readonly MAX_ROLL_RAD = Cesium.Math.toRadians(60);   // Maksimum roll: ±60°
     private readonly MAX_PITCH_RAD = Cesium.Math.toRadians(45);  // Maksimum pitch: ±45°
@@ -70,7 +57,6 @@ export class MovementEngine {
     private static readonly _sMoveEcef = new Cesium.Cartesian3();
     private static readonly _sTargetPos = new Cesium.Cartesian3();
     private static readonly _sEnuMatrix = new Cesium.Matrix4();
-    private static readonly _sDiff = new Cesium.Cartesian3(); // DIS correction hesabı için
     private static readonly _sHpr = new Cesium.HeadingPitchRoll();
     private static readonly _sNewQuat = new Cesium.Quaternion();
     private static readonly _sInvEnuMatrix = new Cesium.Matrix4();
@@ -91,16 +77,13 @@ export class MovementEngine {
         MovementEngine._sHpr.pitch = initialP;
         MovementEngine._sHpr.roll = initialR;
         Cesium.Transforms.headingPitchRollQuaternion(this.currentVisualPos, MovementEngine._sHpr, Cesium.Ellipsoid.WGS84, Cesium.Transforms.eastNorthUpToFixedFrame, this.currentVisualQuat);
-        Cesium.Quaternion.clone(this.currentVisualQuat, this.targetQuat);
 
         this.lastAlt = initialHeight;
         this.lastHeading = initialH;
         this.lastPitch = initialP;
         this.lastRoll = initialR;
-        this.heading = initialH;
         this.trackAngle = initialH;
         this.lastTrackAngle = initialH;
-        this.lastFrameTime = Date.now();
 
         this.lastPacketLocalTime = Date.now();
         Cesium.Cartesian3.ZERO.clone(this.posError);
@@ -113,34 +96,16 @@ export class MovementEngine {
         return Math.max(1.5, this.avgPacketDt * this.MAX_MISSED_PACKETS);
     }
 
-
-    // --- DİNAMİK ZAMAN AŞIMI (5 PAKET KURALI) ---
-    private get predictionTimeoutSec(): number {
-        // Ağın ortalama ritminin 5 katı (5 paketlik boşluk).
-        // Ağ çok hızlıysa uçağın 250ms'de donmasını önlemek için "minimum 1.5 saniye" sınırı koyuyoruz.
-        return Math.max(this.avgPacketDt * 5.0, 1.5);
-    }
-
     public setOrientationOffset(offsetRad: number): void {
         this.orientationOffset = offsetRad;
     }
 
     /**
-     * DİKKAT: Bu fonksiyonu Cesium'un `scene.preUpdate` event'inde HER KAREDE BİR KEZ çağır!
-     * Böylece Position ve Orientation fonksiyonları aynı zaman dilimini kullanır, titreme olmaz.
-     */
-    public updateFrameTime() {
-        const now = Date.now();
-        this.currentFrameDt = (now - this.lastFrameTime) / 1000;
-        // Eğer sekme arka planda kalırsa ve 1 saniye geçerse, uçağın ışınlanmasını engellemek için sınırlarız
-        if (this.currentFrameDt > 0.1) this.currentFrameDt = 0.1; 
-        this.lastFrameTime = now;
-    }
-
-    /**
      * Sunucudan yeni paket geldiğinde çalışır.
+     * @param lon, lat, alt : Konum (Derece, Derece, Metre)
      * @param speed : Yatay hız (m/s)
      * @param h, p, r : Heading, Pitch, Roll (Radyan cinsinden)
+     * @param serverTimestamp : Sunucu zaman damgası (ms)
      */
     public onPacketReceived(lon: number, lat: number, alt: number, speed: number, h: number, p: number, r: number, serverTimestamp: number) {
 
@@ -151,8 +116,8 @@ export class MovementEngine {
         const localNow = Date.now();
         const previousServerTime = this.lastServerTime;
 
-        // Saat senkronizasyonu için offset hesapla
-        const currentOffset = localNow - serverTimestamp; // lokasyon ve yönelim verilerini alırken gecikme (ms)
+        // Saat senkronizasyonu için offset hesapla : paket verilerini alırken gecikme (ms)
+        const currentOffset = localNow - serverTimestamp; 
         if (this.serverClientOffset === 0) {
             this.serverClientOffset = currentOffset;
         } else {
@@ -160,20 +125,18 @@ export class MovementEngine {
         }
         this.lastServerTime = serverTimestamp;
 
-        ///////////
 
         // UZUN BOŞLUK KONTROLÜ (Timeout sonrası ilk paket)
         const dtPacket = (previousServerTime > 0) ? (serverTimestamp - previousServerTime) / 1000 : 0;
 
         if (dtPacket > this.PREDICTION_MAX_SEC) {
-            // 15 saniyeden uzun süre veri gelmemiş → aracı yeni konumdan başlat
+            // PREDICTION_MAX_SEC saniyeden uzun süre veri gelmemiş → aracı yeni konumdan başlat
             console.log(`[MovementEngine] ${dtPacket.toFixed(1)}s veri boşluğu → ForceSync yapılıyor.`);
             this.forceSync(lon, lat, alt, speed, h, p, r);
             return; // Bu paket işlendi (forceSync ile), normal akışa geçmeye gerek yok
         }
 
-////
-        // --- AĞIN RİTMİNİ (TICK RATE) ÖĞREN ---
+        // AĞIN RİTMİNİ (TICK RATE) ÖĞREN 
         if (this.packetCount > 0) {
             const dtLocal = (localNow - this.lastPacketLocalTime) / 1000.0;
             // Aşırı uçları kırparak (50ms - 2sn arası) ağın ortalama hızını buluyoruz
@@ -181,11 +144,10 @@ export class MovementEngine {
             this.avgPacketDt = this.avgPacketDt * 0.8 + clampedDt * 0.2;
         }
         this.lastPacketLocalTime = localNow;
-////
 
 
         // 3 saniyeden uzun süredir gelmiyorsa dönüşleri ve dalışları sıfırla,  ??????
-        // uçağı sadece ileriye doğru DÜMDÜZ uçur"                             
+        // uçağı sadece ileriye doğru DÜMDÜZ uçur                             
         if (dtPacket > 3.0 && previousServerTime > 0) {
             console.log(`[MovementEngine] ${dtPacket.toFixed(1)}s boşluk → Tahmin verileri sıfırlanıyor.`);
             this.turnRate = 0;
@@ -193,17 +155,14 @@ export class MovementEngine {
             this.pitchRate = 0;
             this.rollRate = 0;
             this.vz = 0;
-            // packetCount'u 1 yaparak sonraki pakette normal hesaplama başlamasını sağla
-            this.packetCount = 1;
+            this.packetCount = 1; //sonraki pakette normal hesaplama başlamasını sağlar
         }
         
-        ///////////
-
         // 1. Yeni Konum ve Yönelimi Dünya (ECEF) formatında hazırla
         this.packetCount++;
         const newPos = Cesium.Cartesian3.fromDegrees(lon, lat, alt, Cesium.Ellipsoid.WGS84, MovementEngine._sNewPos);
         
-        // ONCE FİZİK VE DÖNÜŞ HIZI HESAPLAMALARINI YAP!
+        // ONCE FİZİK VE DÖNÜŞ HIZI HESAPLAMALARI 
         // 2. trackTurnRate + turnRate + Speed hesapla
         if (dtPacket > 0.01 && previousServerTime > 0) {
                        
@@ -214,28 +173,27 @@ export class MovementEngine {
             const invEnu = Cesium.Matrix4.inverse(MovementEngine._sEnuMatrix, MovementEngine._sInvEnuMatrix);
             const localDiff = Cesium.Matrix4.multiplyByPointAsVector(invEnu, diff, MovementEngine._sTrackEnu);
 
-
             // --- trackTurnRate hesabı ---
             const moveDist = Cesium.Cartesian3.magnitude(localDiff);
             let rawTrackTurnRate = 0;
 
-            // 1. DURMA KONTROLÜ (Eski korumamız)
+            // 1. DURMA KONTROLÜ
             if (this.speed < 1.0) {
                 // Araç duruyor veya park ediyor. Dönüş hızı kesinlikle SIFIR olmalı.
                 rawTrackTurnRate = 0; 
             }
             // 2. GÜRÜLTÜ / BURST KONTROLÜ
             else if (moveDist < 1.5) {
-                // Araç hızlı gidiyor ama 1.5 metreden az yol almış. Demek ki paket çok hızlı (Burst) geldi!
-                // Açı hesaplamak için mesafe çok kısa (gürültülü olur), bu yüzden ESKİ KAVİSİ KORU, sıfırlama!
+                // Araç hızlı gidiyor ama 1.5 metreden az yol almış. Demek ki paket çok hızlı (Burst) geldi
+                // Açı hesaplamak için mesafe çok kısa (gürültülü olur), bu yüzden ESKİ KAVİSİ KORU, sıfırlama
                 rawTrackTurnRate = this.trackTurnRate; 
             }
-            // 3. NORMAL UÇUŞ
+            // 3. NORMAL
             else {
                 // Mesafe yeterince uzun, gerçek ve pürüzsüz açıyı hesapla
                 this.trackAngle = Math.atan2(localDiff.x, localDiff.y); //Doğuya ne kadar gittim? = X, Kuzeye ne kadar gittim? = Y 
                 
-                // KRİTİK DÜZELTME: 3. paketten önce dönüş hızı (kavis) HESAPLANAMAZ!
+                // 3. paketten önce dönüş hızı (kavis) HESAPLANAMAZ
                 if (this.packetCount > 2) {
                     // Track bazlı dönüş hızı (Manevra tahmini için)
                     let deltaT = this.trackAngle - this.lastTrackAngle;
@@ -251,7 +209,7 @@ export class MovementEngine {
             // this.vz = this.vz * 0.8 + (newVz * 0.2);
             
 
-            // 🔽🔽🔽 TEST KODU BAŞLANGICI (CANLIYA ÇIKARKEN BU BLOĞU SİL) 🔽🔽🔽
+            // --------- TEST KODU BAŞLANGICI (CANLIYA ÇIKARKEN BU BLOĞU SİL)----------
             // Eğer sunucu p ve r değerlerini 0 gönderiyorsa ve araç hareket ediyorsa
             // (Sadece testler için C# verisini eziyoruz)
             if (p === 0 && r === 0 && speed > 1.0) {
@@ -266,7 +224,7 @@ export class MovementEngine {
             else{
                 console.log("TEST KODU PASİF");
             }
-            // 🔼🔼🔼 TEST KODU BİTİŞİ 🔼🔼🔼
+            // --------- TEST KODU BİTİŞİ ----------
 
 
             // --- turnRate hesabı ---
@@ -315,7 +273,7 @@ export class MovementEngine {
         MovementEngine._sHpr.roll = r;
         const newQuat = Cesium.Transforms.headingPitchRollQuaternion(newPos, MovementEngine._sHpr, Cesium.Ellipsoid.WGS84, Cesium.Transforms.eastNorthUpToFixedFrame, MovementEngine._sNewQuat);
 
-/////
+
         // 3. BAŞLANGIÇ KANCASINI (HOOK) ÖNLE VE HATA VEKTÖRÜNÜ YAKALA
         if (this.packetCount <= 2) {
             // İlk 2 pakette yumuşatmayı iptal et, doğrudan ham veriye ışınla (Kancayı engeller)
@@ -326,7 +284,7 @@ export class MovementEngine {
         } else {
 
             // 3. Paketten itibaren hata sönümlemesine (Error Blending) başla
-            // --- YENİ MİMARİ: HATA VEKTÖRÜNÜ YAKALA ---
+            // HATA VEKTÖRÜNÜ YAKALA 
             // Yeni hedef konumu belirlemeden önce, görsel modelin ne kadar "yanlış" yerde kaldığını buluruz.
             Cesium.Cartesian3.subtract(this.currentVisualPos, newPos, this.posError);
             
@@ -334,37 +292,32 @@ export class MovementEngine {
             const invNewQuat = Cesium.Quaternion.inverse(newQuat, MovementEngine._sInvNewQuat);
             Cesium.Quaternion.multiply(this.currentVisualQuat, invNewQuat, this.oriError);
 
-            // Güvenlik Subabı: Eğer ağda devasa bir lag olduysa ve hata 500 metreyi geçtiyse, 
+            // Güvenlik: Eğer ağda devasa bir lag olduysa ve hata 500 metreyi geçtiyse, 
             // sönümleme yapma, direkt ışınlan (lastik gibi çekilmesini önler).
             if (Cesium.Cartesian3.magnitude(this.posError) > 500.0) {
                 Cesium.Cartesian3.ZERO.clone(this.posError);
                 Cesium.Quaternion.IDENTITY.clone(this.oriError);
             }
         }
-/////
 
         this.lastTrackAngle = this.trackAngle;
         this.lastAlt = alt;
         this.lastHeading = h;
         this.lastPitch = p;
         this.lastRoll = r;
-        this.heading = h;
         this.speed = speed; // Yatay hız doğrudan sunucudan geliyor
 
         // Serbest uçuş verileri doğrudan hedefe yaz
         Cesium.Cartesian3.clone(newPos, this.lastRealPos);
-        Cesium.Quaternion.clone(newQuat, this.targetQuat);
     }
 
 
-
-    /*
     public getLatestPosition(result: Cesium.Cartesian3): Cesium.Cartesian3 {
         const localNow = Date.now();
         const estimatedServerNow = localNow - this.serverClientOffset;
         let dtSincePacket = (estimatedServerNow - this.lastServerTime) / 1000;
         
-        // Emniyet Kemerleri
+        // Guvenlik
         if (dtSincePacket < 0) dtSincePacket = 0;
         if (dtSincePacket > this.PREDICTION_MAX_SEC) dtSincePacket = this.PREDICTION_MAX_SEC;
 
@@ -372,78 +325,16 @@ export class MovementEngine {
         const targetPos = Cesium.Cartesian3.clone(this.lastRealPos, MovementEngine._sTargetPos);
 
         if (dtSincePacket > 0 && this.speed > 0.01 && this.packetCount >= 2) {
-            // const predictedHeading = this.heading + (this.turnRate * dtSincePacket);
-            // ARTIK TAHMİNİ HEADING İLE DEĞİL, TRACK ANGLE İLE YAPIYORUZ
-            // Bu sayede rüzgar etkisi (drift) otomatik korunur.
-            const predictedTrack = this.trackAngle + (this.trackTurnRate * dtSincePacket);
-
-            const moveEnu = MovementEngine._sMoveEnu;
-            moveEnu.x = Math.sin(predictedTrack) * this.speed * dtSincePacket; // East
-            moveEnu.y = Math.cos(predictedTrack) * this.speed * dtSincePacket; // North
-            // moveEnu.z = 0;
-
-            // DİKEY TAHMİN (Yeni eklenen kısım)
-            // Uçak paketler arasında vz hızıyla yükseliyor veya alçalıyor
-            moveEnu.z = this.vz * dtSincePacket;
-
-            // ENU → ECEF dönüşüm matrisi
-            Cesium.Transforms.eastNorthUpToFixedFrame(this.lastRealPos, Cesium.Ellipsoid.WGS84, MovementEngine._sEnuMatrix);
-            Cesium.Matrix4.multiplyByPointAsVector(MovementEngine._sEnuMatrix, moveEnu, MovementEngine._sMoveEcef);
-            Cesium.Cartesian3.add(targetPos, MovementEngine._sMoveEcef, targetPos);
-        }
-        // DIS CONVERGENCE CORRIDOR: Yumuşatma + Maksimum düzeltme hızı limiti
-
-        // Hedef pozisyon ile mevcut görsel pozisyon arasındaki farkı hesapla
-        const diff = Cesium.Cartesian3.subtract(targetPos, this.currentVisualPos, MovementEngine._sDiff);
-        const distance = Cesium.Cartesian3.magnitude(diff);
-        
-        // Exponential smoothing
-        // Aracın hedefe doğru yüzde kaç oranında yaklaşması gerektiği (0.0 ile 1.0 arası bir katsayı) hesaplanıyor.
-        let lerpFactor = 1.0 - Math.exp(-this.POS_SMOOTH_SPEED * this.currentFrameDt);
-        
-        // Bir karede en fazla MAX_CORRECTION_PER_SEC × dt metre hareket edebilir
-        const maxMove = this.MAX_CORRECTION_PER_SEC * this.currentFrameDt;
-
-        // Eğer hedefe çok yakınsak, yumuşatma faktörü azalt
-        // Eğer hedefe olan uzaklık çok fazlaysa (örn internet 3sn koptu, uçak 1000 m geride kaldı), 
-        // Üstel Yumuşatma formülü uçağı çok hızlı çekmek isteyecektir. Bu blok, bu aşırı hızı engeller.
-        if (distance * lerpFactor > maxMove && distance > 0) {
-            lerpFactor = maxMove / distance;
-        }
-
-        Cesium.Cartesian3.lerp(this.currentVisualPos, targetPos, lerpFactor, this.currentVisualPos);
-
-        return Cesium.Cartesian3.clone(this.currentVisualPos, result);
-    }*/
-
-    public getLatestPosition(result: Cesium.Cartesian3): Cesium.Cartesian3 {
-        const localNow = Date.now();
-        const estimatedServerNow = localNow - this.serverClientOffset;
-        let dtSincePacket = (estimatedServerNow - this.lastServerTime) / 1000;
-        
-        // Emniyet Kemerleri
-        if (dtSincePacket < 0) dtSincePacket = 0;
-
-        if (dtSincePacket > this.PREDICTION_MAX_SEC) dtSincePacket = this.PREDICTION_MAX_SEC;
-
-        // HEADING + TRACK ANGLE TAHMİNİ: Basit ama sağlam ekstrapolasyon
-        const targetPos = Cesium.Cartesian3.clone(this.lastRealPos, MovementEngine._sTargetPos);
-
-        if (dtSincePacket > 0 && this.speed > 0.01 && this.packetCount >= 2) {
-            // const predictedHeading = this.heading + (this.turnRate * dtSincePacket);
-            // ARTIK TAHMİNİ HEADING İLE DEĞİL, TRACK ANGLE İLE YAPIYORUZ
-            // Bu sayede rüzgar etkisi (drift) otomatik korunur.
 
             const moveEnu = MovementEngine._sMoveEnu;
             
-            /////
             // Eğer dönüş hızı çok küçükse (düz uçuş), sıfıra bölme hatasını önlemek için klasik doğrusal (kiriş) formül
             if (Math.abs(this.trackTurnRate) < 0.001) {
                 const predictedTrack = this.trackAngle + (this.trackTurnRate * dtSincePacket);
                 moveEnu.x = Math.sin(predictedTrack) * this.speed * dtSincePacket; // East
                 moveEnu.y = Math.cos(predictedTrack) * this.speed * dtSincePacket; // North
             } 
-            // Eğer uçak virajdaysa KUSURSUZ YAY İNTEGRALİ (CTRV - Sabit Dönüş Hızı ve Hız Modeli)
+            // Eğer uçak virajdaysa YAY İNTEGRALİ (CTRV - Sabit Dönüş Hızı ve Hız Modeli)
             else {
                 const theta0 = this.trackAngle;
                 const theta1 = theta0 + (this.trackTurnRate * dtSincePacket);
@@ -453,133 +344,34 @@ export class MovementEngine {
                 moveEnu.x = R * (Math.cos(theta0) - Math.cos(theta1)); // East
                 moveEnu.y = R * (Math.sin(theta1) - Math.sin(theta0)); // North
             }
-            /////
 
-            // DİKEY TAHMİN (Yeni eklenen kısım)
+            // DİKEY TAHMİN
             // Uçak paketler arasında vz hızıyla yükseliyor veya alçalıyor
             moveEnu.z = this.vz * dtSincePacket;
 
             // ENU → ECEF dönüşüm matrisi
+            // moveEnu = (100m doğu, 50m kuzey, 10m yukarı)  →  ECEF = (dx, dy, dz)
             Cesium.Transforms.eastNorthUpToFixedFrame(this.lastRealPos, Cesium.Ellipsoid.WGS84, MovementEngine._sEnuMatrix);
             Cesium.Matrix4.multiplyByPointAsVector(MovementEngine._sEnuMatrix, moveEnu, MovementEngine._sMoveEcef);
             Cesium.Cartesian3.add(targetPos, MovementEngine._sMoveEcef, targetPos);
         }
-
-        /*
-        // DIS CONVERGENCE CORRIDOR: Yumuşatma + Maksimum düzeltme hızı limiti
-
-        // Hedef pozisyon ile mevcut görsel pozisyon arasındaki farkı hesapla
-        const diff = Cesium.Cartesian3.subtract(targetPos, this.currentVisualPos, MovementEngine._sDiff);
-        const distance = Cesium.Cartesian3.magnitude(diff);
-        
-        // 1. 3D Vektörel Hız (Bileşke Hız)
-        // ECEF koordinat sisteminde hareket ettiğimiz için x, y ve z bileşenlerinin 
-        // toplam büyüklüğü uçağın uzaydaki gerçek "yürüme" kapasitesidir.
-        const vectorSpeed = Math.sqrt(Math.pow(this.speed, 2) + Math.pow(this.vz, 2));
-        // 2. Dinamik Düzeltme Kapasitesi (Overdrive)
-        // Hatayı kapatmak için uçağa kendi hızının en fazla %50'si kadar "ekstra hız" veriyoruz.
-        // Bu, uçağın fiziksel limitlerini saçma sapan zorlamasını engeller.
-        const maxOverdrive = vectorSpeed * 0.5; 
-        // Hata ne kadar büyükse o kadar hızlı yetişmeye çalış, ama maxOverdrive'ı geçme.
-        // Buradaki '0.5' (saniye), hatanın ne kadar sürede sönümleneceğidir ama clamp sayesinde güvenlidir.
-        const catchUpSpeed = Math.min(distance / this.profile.catchUpTimeSec, maxOverdrive);
-        // 3. Nihai Limit
-        // Uçak duruyorsa (hız=0) bile küçük hataları düzeltebilmesi için bir taban (örn: 20m/s) ekliyoruz.
-        const dynamicCorrectionLimit = Math.max(this.profile.minCorrectionSpeed, vectorSpeed + catchUpSpeed);
-
-        // Exponential smoothing
-        // Aracın hedefe doğru yüzde kaç oranında yaklaşması gerektiği (0.0 ile 1.0 arası bir katsayı) hesaplanıyor.
-        let lerpFactor = 1.0 - Math.exp(-this.POS_SMOOTH_SPEED * this.currentFrameDt);
-        
-        // Bir karede en fazla MAX_CORRECTION_PER_SEC × dt metre hareket edebilir
-        // const maxMove = this.MAX_CORRECTION_PER_SEC * this.currentFrameDt;
-        const maxMove = dynamicCorrectionLimit * this.currentFrameDt;
-
-        // Eğer hedefe çok yakınsak, yumuşatma faktörü azalt
-        // Eğer hedefe olan uzaklık çok fazlaysa (örn internet 3sn koptu, uçak 1000 m geride kaldı), 
-        // Üstel Yumuşatma formülü uçağı çok hızlı çekmek isteyecektir. Bu blok, bu aşırı hızı engeller.
-        if (distance * lerpFactor > maxMove && distance > 0) {
-            lerpFactor = maxMove / distance;
-        }
-
-        Cesium.Cartesian3.lerp(this.currentVisualPos, targetPos, lerpFactor, this.currentVisualPos);
-        */
 
         // 2. HATA VEKTÖRÜNÜ ERİT (ERROR BLENDING)
         // Son paketten bu yana ne kadar zaman geçtiğini kendi yerel saatimizle ölçüyoruz.
         const timeSinceLastUpdate = (Date.now() - this.lastPacketLocalTime) / 1000.0;
         
         // Ağın ritmine göre sönümleme katsayısı (Ortalama sürede hatanın %95'i erir)
-        // GÜVENLİK SUBABI: Ağ 50ms atsa bile amortisör hatayı en az 0.5 saniyede eritsin ki uçak zıplamasın!
+        // GÜVENLİK : Ağ 50ms atsa bile amortisör hatayı en az 0.5 saniyede eritsin ki uçak zıplamasın!
         const safeBlendDuration = Math.max(this.avgPacketDt, 0.2); // 0.5
         const decayRate = 3.0 / safeBlendDuration; // Sönümleme Oranı 
         const decayFactor = Math.exp(-decayRate * timeSinceLastUpdate);
 
         // 3. Görsel Konum = Kusursuz Konum + Eriyen Hata
-        const currentError = Cesium.Cartesian3.multiplyByScalar(this.posError, decayFactor, MovementEngine._sMoveEcef); // Scratchpad kullandık
+        const currentError = Cesium.Cartesian3.multiplyByScalar(this.posError, decayFactor, MovementEngine._sMoveEcef);
         Cesium.Cartesian3.add(targetPos, currentError, this.currentVisualPos);
 
         return Cesium.Cartesian3.clone(this.currentVisualPos, result);
     }
-/*
-    public getLatestOrientation(result: Cesium.Quaternion): Cesium.Quaternion {
-        // HEADING + ROLL + PITCH EKSTRAPOLASYONU
-        const localNow = Date.now();
-        const estimatedServerNow = localNow - this.serverClientOffset;
-        let dtSincePacket = (estimatedServerNow - this.lastServerTime) / 1000;
-        if (dtSincePacket < 0) dtSincePacket = 0;
-        if (dtSincePacket > this.PREDICTION_MAX_SEC) dtSincePacket = this.PREDICTION_MAX_SEC;
-
-        // Heading'i turnRate ile tahmin et (pozisyon için trackAngle, görsel için heading)
-        // orientationOffset (Pruva-Pupa hatası vb.) burada dahil edilir.
-        const predictedHeading = this.heading + (this.turnRate * dtSincePacket) + this.orientationOffset;
-
-        // ROLL ve PITCH: Her zaman fizik-bazlı hesaplama
-        // Koordineli viraj: tan(roll) = V × ω / g — uçak dönerken kanat yatırır
-        const predictedRoll = Math.atan(this.speed * this.turnRate / this.GRAVITY);
-        // Tırmanma/alçalma açısı: pitch = atan2(vz, speed) — burun yönü
-        const predictedPitch = (this.speed > 0.5) ? Math.atan2(this.vz, this.speed) : 0;
-
-
-        
-        // EĞER FİZİKSEL VERİ YOKSA (HIZ DÜŞÜK VEYA DURUYORSA), SON PAKET VERİSİNİ KULLAN
-        // Bu sayede uçak yerdeyken veya çok yavaşken burnu ve yatışı sıfırlanmaz.
-        //if (this.speed < 1.0) {
-        //    predictedRoll = this.lastRoll;
-        //    predictedPitch = this.lastPitch;
-        //} 
-         
-
-        // Fiziksel sınır clamping
-        // Değer eğer minimumdan (negatif) küçükse, taban sınırının altına inmesini engeller.
-        // Fizik formülü ne derse desin, senin kanat yatırma sınırın sağa 60, sola 60 derecedir (MAX_ROLL_RAD). Daha fazla yatamazsın
-        const clampedRoll = Math.max(-this.MAX_ROLL_RAD, Math.min(this.MAX_ROLL_RAD, predictedRoll));
-        const clampedPitch = Math.max(-this.MAX_PITCH_RAD, Math.min(this.MAX_PITCH_RAD, predictedPitch));
-
-        // Tahmin edilen HPR ile yeni hedef quaternion oluştur
-        MovementEngine._sHpr.heading = predictedHeading;
-        MovementEngine._sHpr.pitch = clampedPitch;
-        MovementEngine._sHpr.roll = clampedRoll;
-        
-        // Modelin ekrandaki konumunda ENU çerçevesinden quaternion hesapla
-        const predictedQuat = Cesium.Transforms.headingPitchRollQuaternion(
-            this.currentVisualPos, MovementEngine._sHpr,
-            Cesium.Ellipsoid.WGS84, Cesium.Transforms.eastNorthUpToFixedFrame,
-            MovementEngine._sNewQuat
-        );
-
-        // GÖRSEL AÇI YUMUŞATMA (Slerp): Tahmini hedefe pürüzsüzce döndür
-        // Slerp: İki yönelim arasındaki en kısa ve pürüzsüz yay üzerinde dönüş yapar.
-        // ORI_SMOOTH_SPEED değerini 3.0 ile 5.0 arasında tutarak İHA'nın 
-        // manevra kabiliyetine göre dönüş hızını ayarlayabilirsin.
-
-        const slerpFactor = 1.0 - Math.exp(-this.ORI_SMOOTH_SPEED * this.currentFrameDt);
-        // Cesium.Quaternion.slerp(this.currentVisualQuat, this.targetQuat, slerpFactor, this.currentVisualQuat);
-        Cesium.Quaternion.slerp(this.currentVisualQuat, predictedQuat, slerpFactor, this.currentVisualQuat);
-
-        return Cesium.Quaternion.clone(this.currentVisualQuat, result);
-    }
-*/
     
     // HEADING + ROLL + PITCH EKSTRAPOLASYONU
     public getLatestOrientation(result: Cesium.Quaternion): Cesium.Quaternion {
@@ -592,33 +384,13 @@ export class MovementEngine {
         if (dtSincePacket > this.PREDICTION_MAX_SEC) dtSincePacket = this.PREDICTION_MAX_SEC;
 
         // Heading'i turnRate ile tahmin et (pozisyon için trackAngle, görsel için heading)
-        const predictedHeading = this.heading + (this.turnRate * dtSincePacket) + this.orientationOffset;
+        const predictedHeading = this.lastHeading + (this.turnRate * dtSincePacket) + this.orientationOffset;
         const predictedPitch = this.lastPitch + (this.pitchRate * dtSincePacket);
         const predictedRoll = this.lastRoll + (this.rollRate * dtSincePacket);
 
         MovementEngine._sHpr.heading = predictedHeading;
         MovementEngine._sHpr.pitch = predictedPitch;
         MovementEngine._sHpr.roll = predictedRoll;
-
-        /*
-        // ROLL ve PITCH: Her zaman fizik-bazlı hesaplama
-        // Koordineli viraj: tan(roll) = V × ω / g — uçak dönerken kanat yatırır
-        const predictedRoll = Math.atan(this.speed * this.turnRate / this.GRAVITY);
-        // Tırmanma/alçalma açısı: pitch = atan2(vz, speed) — burun yönü
-        const predictedPitch = (this.speed > 0.5) ? Math.atan2(this.vz, this.speed) : 0;
-        
-
-        // Fiziksel sınır clamping
-        // Değer eğer minimumdan (negatif) küçükse, taban sınırının altına inmesini engeller.
-        // Fizik formülü ne derse desin, senin kanat yatırma sınırın sağa 60, sola 60 derecedir (MAX_ROLL_RAD). Daha fazla yatamazsın
-        const clampedRoll = Math.max(-this.MAX_ROLL_RAD, Math.min(this.MAX_ROLL_RAD, predictedRoll));
-        const clampedPitch = Math.max(-this.MAX_PITCH_RAD, Math.min(this.MAX_PITCH_RAD, predictedPitch));
-
-        // Tahmin edilen HPR ile yeni hedef quaternion oluştur
-        MovementEngine._sHpr.heading = predictedHeading;
-        MovementEngine._sHpr.pitch = clampedPitch;
-        MovementEngine._sHpr.roll = clampedRoll;
-        */
 
         // Modelin ekrandaki konumunda ENU çerçevesinden quaternion hesapla
         const predictedQuat = Cesium.Transforms.headingPitchRollQuaternion(
@@ -629,7 +401,7 @@ export class MovementEngine {
 
         // HATA VEKTÖRÜNÜ ERİT (ERROR BLENDING)
         const timeSinceLastUpdate = (Date.now() - this.lastPacketLocalTime) / 1000.0;
-        // GÜVENLİK SUBABI (Aynı şekilde buraya da ekliyoruz) //0.5 yapabilirsin 
+        // GÜVENLİK (Aynı şekilde buraya da ekliyoruz) //0.5 yapabilirsin 
         const safeBlendDuration = Math.max(this.avgPacketDt, 0.2);
         const decayRate = 3.0 / safeBlendDuration;
         const decayFactor = Math.exp(-decayRate * timeSinceLastUpdate);
@@ -644,11 +416,7 @@ export class MovementEngine {
         return Cesium.Quaternion.clone(this.currentVisualQuat, result);
     }
 
-    /**
-     * Veri doğrulama bekçisi.
-     * Gelen paketin fiziksel kurallara uyup uymadığını denetler.
-     * Zaman aşımı (timeout) mantığı onPacketReceived içinde yönetilir.
-     */
+
     private isValidPacket(lon: number, lat: number, alt: number, speed: number, h: number, p: number, r: number, serverTimestamp: number): boolean {
         // 1. Zaman Kontrolü (Gecikmiş veya mükerrer veri tespiti)
         if (this.lastServerTime > 0 && serverTimestamp <= this.lastServerTime) {
@@ -687,7 +455,6 @@ export class MovementEngine {
         Cesium.Cartesian3.clone(posEcef, this.currentVisualPos);
         
         const quat = this.calculateQuaternion(posEcef, h, p, r);
-        Cesium.Quaternion.clone(quat, this.targetQuat);
         Cesium.Quaternion.clone(quat, this.currentVisualQuat);
 
         // 2. TAHMİN MOTORUNU SIFIRLA
@@ -706,12 +473,11 @@ export class MovementEngine {
         this.lastHeading = h;
         this.lastPitch = p;
         this.lastRoll = r;
-        this.heading = h;
         ////
 
-                // Işınlanmada hataları sıfırla ki yumuşatmaya kalkmasın
-                Cesium.Cartesian3.ZERO.clone(this.posError);
-                Cesium.Quaternion.IDENTITY.clone(this.oriError);
+        // Işınlanmada hataları sıfırla ki yumuşatmaya kalkmasın
+        Cesium.Cartesian3.ZERO.clone(this.posError);
+        Cesium.Quaternion.IDENTITY.clone(this.oriError);
         
         console.log(`[MovementEngine] Işınlanma (ForceSync) tamamlandı: ${lon.toFixed(5)}, ${lat.toFixed(5)}`);
     }

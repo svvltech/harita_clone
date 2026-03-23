@@ -14,7 +14,7 @@ using System.Reflection;
 [assembly: System.Reflection.AssemblyCompanyAttribute("CesiumWpfApp")]
 [assembly: System.Reflection.AssemblyConfigurationAttribute("Debug")]
 [assembly: System.Reflection.AssemblyFileVersionAttribute("1.0.0.0")]
-[assembly: System.Reflection.AssemblyInformationalVersionAttribute("1.0.0+704946a1e9e6b8b0d19b12d7c770aebfb89ce2ad")]
+[assembly: System.Reflection.AssemblyInformationalVersionAttribute("1.0.0+44ffa709dd8edf00b3211bb0da2ed9939b6a4f7a")]
 [assembly: System.Reflection.AssemblyProductAttribute("CesiumWpfApp")]
 [assembly: System.Reflection.AssemblyTitleAttribute("CesiumWpfApp")]
 [assembly: System.Reflection.AssemblyVersionAttribute("1.0.0.0")]

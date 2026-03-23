@@ -31,10 +31,6 @@ const scratchMat4 = new Cesium.Matrix4();
 
 // Her karede engine'lerin zaman bilgisini güncelle
 viewer?.scene.preUpdate.addEventListener(() => {
-    shipEngine?.updateFrameTime();
-    planeEngine?.updateFrameTime();
-    deckEngine?.updateFrameTime();
-
     // --- DEBUG HUD GÜNCELLEME ---
     if (planeEngine) {
         updateDebugHud(planeEngine.getDebugInfo());
