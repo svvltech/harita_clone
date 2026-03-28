@@ -37,7 +37,7 @@ viewer?.scene.preUpdate.addEventListener(() => {
 
     // --- DEBUG HUD GÜNCELLEME ---
     if (planeEngine) {
-        updateDebugHud(planeEngine.getDebugInfo());
+        //updateDebugHud(planeEngine.getDebugInfo());
     }
 });
 

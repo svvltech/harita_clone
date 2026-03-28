@@ -311,6 +311,8 @@ C:\Users\PC_5508\Desktop\paralel_harita\Harita_Clone_Deneme\CesiumWpfApp\bin\Deb
 C:\Users\PC_5508\Desktop\paralel_harita\Harita_Clone_Deneme\CesiumWpfApp\bin\Debug\net8.0-windows\win-x64\wwwroot\src_modelManager_ts.bundle.js.map
 C:\Users\PC_5508\Desktop\paralel_harita\Harita_Clone_Deneme\CesiumWpfApp\bin\Debug\net8.0-windows\win-x64\wwwroot\src_planeManager_ts.bundle.js
 C:\Users\PC_5508\Desktop\paralel_harita\Harita_Clone_Deneme\CesiumWpfApp\bin\Debug\net8.0-windows\win-x64\wwwroot\src_planeManager_ts.bundle.js.map
+C:\Users\PC_5508\Desktop\paralel_harita\Harita_Clone_Deneme\CesiumWpfApp\bin\Debug\net8.0-windows\win-x64\wwwroot\src_polyline_work_ucusRotasi_ts.bundle.js
+C:\Users\PC_5508\Desktop\paralel_harita\Harita_Clone_Deneme\CesiumWpfApp\bin\Debug\net8.0-windows\win-x64\wwwroot\src_polyline_work_ucusRotasi_ts.bundle.js.map
 C:\Users\PC_5508\Desktop\paralel_harita\Harita_Clone_Deneme\CesiumWpfApp\bin\Debug\net8.0-windows\win-x64\wwwroot\ThirdParty\basis_transcoder.wasm
 C:\Users\PC_5508\Desktop\paralel_harita\Harita_Clone_Deneme\CesiumWpfApp\bin\Debug\net8.0-windows\win-x64\wwwroot\ThirdParty\draco_decoder.wasm
 C:\Users\PC_5508\Desktop\paralel_harita\Harita_Clone_Deneme\CesiumWpfApp\bin\Debug\net8.0-windows\win-x64\wwwroot\ThirdParty\google-earth-dbroot-parser.js
@@ -540,12 +542,10 @@ C:\Users\PC_5508\Desktop\paralel_harita\Harita_Clone_Deneme\CesiumWpfApp\obj\Deb
 C:\Users\PC_5508\Desktop\paralel_harita\Harita_Clone_Deneme\CesiumWpfApp\obj\Debug\net8.0-windows\win-x64\CesiumWpfApp.AssemblyInfoInputs.cache
 C:\Users\PC_5508\Desktop\paralel_harita\Harita_Clone_Deneme\CesiumWpfApp\obj\Debug\net8.0-windows\win-x64\CesiumWpfApp.AssemblyInfo.cs
 C:\Users\PC_5508\Desktop\paralel_harita\Harita_Clone_Deneme\CesiumWpfApp\obj\Debug\net8.0-windows\win-x64\CesiumWpfApp.csproj.CoreCompileInputs.cache
+C:\Users\PC_5508\Desktop\paralel_harita\Harita_Clone_Deneme\CesiumWpfApp\obj\Debug\net8.0-windows\win-x64\CesiumWpfApp.sourcelink.json
 C:\Users\PC_5508\Desktop\paralel_harita\Harita_Clone_Deneme\CesiumWpfApp\obj\Debug\net8.0-windows\win-x64\CesiumWp.5ED064FC.Up2Date
 C:\Users\PC_5508\Desktop\paralel_harita\Harita_Clone_Deneme\CesiumWpfApp\obj\Debug\net8.0-windows\win-x64\CesiumWpfApp.dll
 C:\Users\PC_5508\Desktop\paralel_harita\Harita_Clone_Deneme\CesiumWpfApp\obj\Debug\net8.0-windows\win-x64\refint\CesiumWpfApp.dll
 C:\Users\PC_5508\Desktop\paralel_harita\Harita_Clone_Deneme\CesiumWpfApp\obj\Debug\net8.0-windows\win-x64\CesiumWpfApp.pdb
 C:\Users\PC_5508\Desktop\paralel_harita\Harita_Clone_Deneme\CesiumWpfApp\obj\Debug\net8.0-windows\win-x64\CesiumWpfApp.genruntimeconfig.cache
 C:\Users\PC_5508\Desktop\paralel_harita\Harita_Clone_Deneme\CesiumWpfApp\obj\Debug\net8.0-windows\win-x64\ref\CesiumWpfApp.dll
-C:\Users\PC_5508\Desktop\paralel_harita\Harita_Clone_Deneme\CesiumWpfApp\obj\Debug\net8.0-windows\win-x64\CesiumWpfApp.sourcelink.json
-C:\Users\PC_5508\Desktop\paralel_harita\Harita_Clone_Deneme\CesiumWpfApp\bin\Debug\net8.0-windows\win-x64\wwwroot\src_polyline_work_ucusRotasi_ts.bundle.js
-C:\Users\PC_5508\Desktop\paralel_harita\Harita_Clone_Deneme\CesiumWpfApp\bin\Debug\net8.0-windows\win-x64\wwwroot\src_polyline_work_ucusRotasi_ts.bundle.js.map

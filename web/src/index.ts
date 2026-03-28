@@ -126,7 +126,7 @@ function createSignalRConnection() {
             }
             entityStats[id].lastTime = now;
         }
-        updateEntityStatsUI();
+        //updateEntityStatsUI();
 
         try {
             const { updateEntityPosition } = await import('./modelManager');
@@ -432,6 +432,12 @@ async function initializeCesium() {
             sceneModePicker: true, selectionIndicator: true, timeline: false,
             navigationHelpButton: false,
         });
+
+        // Sol alt köşedeki Cesium logolarını gizle
+        if (viewer.cesiumWidget.creditContainer) {
+            (viewer.cesiumWidget.creditContainer as HTMLElement).style.display = 'none';
+        }
+
 
         try {
             const osmBuildings = await createOsmBuildingsAsync();
