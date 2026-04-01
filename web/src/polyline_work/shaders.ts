@@ -459,7 +459,7 @@ getValue(time: Cesium.JulianDate, result?: any): any {
 }
 
 
-export class ArrowEdgeMaterialProperty2duzgun implements Cesium.MaterialProperty {
+export class ArrowEdgeMaterialProperty2duzgun_1 implements Cesium.MaterialProperty {
     private _arrowColor: Cesium.Property;
     private _dashColor: Cesium.Property;
     private _dashLength: number;
@@ -621,6 +621,582 @@ getValue(time: Cesium.JulianDate, result?: any): any {
         return this === other;
     }
 }
+
+export class ArrowEdgeMaterialProperty2duzgun_2 implements Cesium.MaterialProperty {
+    private _arrowColor: Cesium.Property;
+    private _dashColor: Cesium.Property;
+    private _dashLength: number;
+    private _arrowLength: number;
+    private _positions: Cesium.Cartesian3[];
+    private _totalLengthMeters: number;
+    private _scene: Cesium.Scene;
+    private _definitionChanged: Cesium.Event;
+
+    constructor(
+        arrowColor: Cesium.Color,
+        dashColor: Cesium.Property, // CallbackProperty veya ConstantProperty
+        scene: Cesium.Scene,
+        positions: Cesium.Cartesian3[],
+        totalLengthMeters: number,
+        dashLength: number = 115.0,
+        arrowLength: number = 35.0
+    ) {
+        this._arrowColor = new Cesium.ConstantProperty(arrowColor);
+        this._dashColor = dashColor;
+        this._scene = scene;
+        this._positions = positions;
+        this._totalLengthMeters = totalLengthMeters;
+        this._dashLength = dashLength;
+        this._arrowLength = arrowLength;
+        this._definitionChanged = new Cesium.Event();
+
+        if (!(Cesium.Material as any)._materialCache._materials["ArrowEdgeMaterialPropertyTransparentEdge"]) {
+           (Cesium.Material as any)._materialCache.addMaterial("ArrowEdgeMaterialPropertyTransparentEdge", {
+                fabric: {
+                    type: "ArrowEdgeMaterialPropertyTransparentEdge",
+                    uniforms: {
+                        arrowColor: Cesium.Color.WHITE,
+                        dashColor: Cesium.Color.PURPLE,
+                        dashLength: 115.0,
+                        arrowLength: 35.0,
+                        repeatCount: 1.0,
+                        minV: 0.40,
+                        maxV: 0.60
+                    },
+                    source: `
+                        uniform vec4 arrowColor;   
+                        uniform vec4 dashColor;
+                        uniform float dashLength;
+                        uniform float arrowLength;
+                        uniform float repeatCount;
+                        uniform float minV;
+                        uniform float maxV;
+
+                        float modp(float x, float len) {
+                            float m = mod(x, len);
+                            return m < 0.0 ? m + len : m;
+                        }
+
+                        float arrowMask(float u, float v) {
+                            const float bodyFrac = 0.35;
+                            const float bodyH    = 0.35;
+                            float halfBody = bodyH * 0.5;
+                            float c = abs(v - 0.5);
+
+                            float inBodyU = 1.0 - step(bodyFrac, u);
+                            float inBodyV = 1.0 - step(halfBody, c);
+                            float alphaBody = inBodyU * inBodyV;
+
+                            float b = clamp((u - bodyFrac) / max(1.0 - bodyFrac, 1e-6), 0.0, 1.0);
+                            float halfHead = 0.5 * (1.0 - b);
+                            float inHeadU  = step(bodyFrac, u);
+                            float inHeadV  = 1.0 - step(halfHead, c);
+                            float alphaHead = inHeadU * inHeadV;
+
+                            return clamp(max(alphaBody, alphaHead), 0.0, 1.0);
+                        }
+
+                        czm_material czm_getMaterial(czm_materialInput materialInput) {
+                            czm_material material = czm_getDefaultMaterial(materialInput);
+                            float s = materialInput.st.s;
+                            float v = materialInput.st.t;
+
+                            float xInSeg = modp(s * repeatCount, 1.0);
+
+                            float totalPixels = dashLength + arrowLength;
+                            float dashRatio = dashLength / totalPixels;
+                            float arrowRatio = arrowLength / totalPixels;
+
+                            float inArrow = step(dashRatio, xInSeg); 
+                            float u = clamp((xInSeg - dashRatio) / max(arrowRatio, 0.001), 0.0, 1.0);
+                            float a = inArrow * arrowMask(u, v);
+
+                            vec4 outColor = mix(dashColor, arrowColor, a);
+                            float vClip = step(minV, v) * step(v, maxV);
+                            
+                            material.diffuse = outColor.rgb;
+                            material.alpha = outColor.a * mix(vClip, 1.0, a); 
+
+                            return material;
+                        }
+                    `
+                },
+                translucent: () => true
+            });
+        }
+    }
+
+    get isConstant(): boolean { return false; }
+    get definitionChanged(): Cesium.Event { return this._definitionChanged; }
+    getType(_time: Cesium.JulianDate): string { return "ArrowEdgeMaterialPropertyTransparentEdge"; }
+
+getValue(time: Cesium.JulianDate, result?: any): any {
+    if (!result) result = {};
+    result.arrowColor = this._arrowColor.getValue(time);
+    result.dashColor = this._dashColor.getValue(time);
+    result.dashLength = this._dashLength;
+    result.arrowLength = this._arrowLength;
+
+    // 1. Kameranın SADECE Yüksekliğini (Altitude) Alıyoruz
+    // Pan (sağa sola kaydırma) sırasında yükseklik değişmez, böylece oklar kaymaz/titremez.
+    let alt = 100000.0;
+    if (this._scene && this._scene.camera) {
+        const carto = this._scene.globe.ellipsoid.cartesianToCartographic(this._scene.camera.positionWC);
+        if (carto) {
+            alt = carto.height;
+            console.log("alt", alt);
+        }
+    }
+
+    // 2. Rotadaki Segment Sayısını Bul (Örn: Senin Z rotanda 3 segment var)
+    const segmentCount = Math.max(this._positions.length - 1, 1);
+/*
+    let arrowsPerSegment = 1;
+
+    // 3. KESİN VE NET ZOOM (LOD) ADIMLARI
+    // Metre/Piksel hesabını bırakıp kameranın yüksekliğine göre doğrudan sayıyı biz veriyoruz.
+    if (alt > 200000.0) {
+        // 200 km'den yüksekteyken: Her parçada 1 ok (Senin resimdeki gibi)
+        arrowsPerSegment = 1;
+    } else if (alt > 100000.0) {
+        // 100 km - 200 km arasında: Her parçada 2 ok
+        arrowsPerSegment = 2;
+    } else if (alt > 40000.0) {
+        // 40 km - 100 km arasında: Her parçada 4 ok
+        arrowsPerSegment = 4;
+    } else if (alt > 15000.0) {
+        // 15 km - 40 km arasında: Her parçada 8 ok
+        arrowsPerSegment = 8;
+    } else {
+        // 15 km'den daha yakındayken (Çok Zoom In): Her parçada 16 ok
+        arrowsPerSegment = 16;
+    }
+*/
+
+// 1. Referans Yüksekliği (Tam olarak 1 ok görmek istediğimiz tepe noktası)
+    const baseAltitude = 400000.0; // 200 km
+
+    // 2. Ters Orantı Hesabı
+    // Yükseklik (alt) azaldıkça, bölme işleminin sonucu doğal olarak büyüyecek.
+    // Sıfıra bölünme hatasını önlemek için Math.max(alt, 1.0) yapıyoruz.
+    let arrowsPerSegment = Math.round(baseAltitude / Math.max(alt, 1.0));
+
+    // 3. Kelepçe (Clamp) - Güvenlik Sınırları
+    // Uzaya çıkınca ok sayısı 0'a düşmesin, yere çakılınca milyonlara çıkmasın.
+    const MIN_ARROWS = 1;
+    const MAX_ARROWS = 16;
+    
+    arrowsPerSegment = Math.max(MIN_ARROWS, Math.min(arrowsPerSegment, MAX_ARROWS));
+    // 4. Sonuç
+    // Toplam repeatCount, segment sayısının KESİN bir katı olur.
+    // Bu, eşit uzunluktaki yatay ve çapraz parçalarda okların %100 aynı sayıda olmasını garanti eder.
+    result.repeatCount = arrowsPerSegment * segmentCount;
+
+    return result;
+}
+
+    equals(other: Cesium.MaterialProperty): boolean {
+        return this === other;
+    }
+}
+
+export class ArrowEdgeMaterialProperty2duzgun_3 implements Cesium.MaterialProperty {
+    private _arrowColor: Cesium.Property;
+    private _dashColor: Cesium.Property;
+    private _dashLength: number;
+    private _arrowLength: number;
+    private _positions: Cesium.Cartesian3[];
+    private _totalLengthMeters: number;
+    private _scene: Cesium.Scene;
+    private _definitionChanged: Cesium.Event;
+
+    constructor(
+        arrowColor: Cesium.Color,
+        dashColor: Cesium.Property, // CallbackProperty veya ConstantProperty
+        scene: Cesium.Scene,
+        positions: Cesium.Cartesian3[],
+        totalLengthMeters: number,
+        dashLength: number = 115.0,
+        arrowLength: number = 35.0
+    ) {
+        this._arrowColor = new Cesium.ConstantProperty(arrowColor);
+        this._dashColor = dashColor;
+        this._scene = scene;
+        this._positions = positions;
+        this._totalLengthMeters = totalLengthMeters;
+        this._dashLength = dashLength;
+        this._arrowLength = arrowLength;
+        this._definitionChanged = new Cesium.Event();
+
+        if (!(Cesium.Material as any)._materialCache._materials["ArrowEdgeMaterialPropertyTransparentEdge"]) {
+           (Cesium.Material as any)._materialCache.addMaterial("ArrowEdgeMaterialPropertyTransparentEdge", {
+                fabric: {
+                    type: "ArrowEdgeMaterialPropertyTransparentEdge",
+                    uniforms: {
+                        arrowColor: Cesium.Color.WHITE,
+                        dashColor: Cesium.Color.PURPLE,
+                        dashLength: 115.0,
+                        arrowLength: 35.0,
+                        repeatCount: 1.0,
+                        minV: 0.40,
+                        maxV: 0.60
+                    },
+                    source: `
+                        uniform vec4 arrowColor;   
+                        uniform vec4 dashColor;
+                        uniform float dashLength;
+                        uniform float arrowLength;
+                        uniform float repeatCount;
+                        uniform float minV;
+                        uniform float maxV;
+
+                        float modp(float x, float len) {
+                            float m = mod(x, len);
+                            return m < 0.0 ? m + len : m;
+                        }
+
+                        float arrowMask(float u, float v) {
+                            const float bodyFrac = 0.35;
+                            const float bodyH    = 0.35;
+                            float halfBody = bodyH * 0.5;
+                            float c = abs(v - 0.5);
+
+                            float inBodyU = 1.0 - step(bodyFrac, u);
+                            float inBodyV = 1.0 - step(halfBody, c);
+                            float alphaBody = inBodyU * inBodyV;
+
+                            float b = clamp((u - bodyFrac) / max(1.0 - bodyFrac, 1e-6), 0.0, 1.0);
+                            float halfHead = 0.5 * (1.0 - b);
+                            float inHeadU  = step(bodyFrac, u);
+                            float inHeadV  = 1.0 - step(halfHead, c);
+                            float alphaHead = inHeadU * inHeadV;
+
+                            return clamp(max(alphaBody, alphaHead), 0.0, 1.0);
+                        }
+
+                        czm_material czm_getMaterial(czm_materialInput materialInput) {
+                            czm_material material = czm_getDefaultMaterial(materialInput);
+                            float s = materialInput.st.s;
+                            float v = materialInput.st.t;
+
+                            float xInSeg = modp(s * repeatCount, 1.0);
+
+                            float totalPixels = dashLength + arrowLength;
+                            float dashRatio = dashLength / totalPixels;
+                            float arrowRatio = arrowLength / totalPixels;
+
+                            float inArrow = step(dashRatio, xInSeg); 
+                            float u = clamp((xInSeg - dashRatio) / max(arrowRatio, 0.001), 0.0, 1.0);
+                            float a = inArrow * arrowMask(u, v);
+
+                            vec4 outColor = mix(dashColor, arrowColor, a);
+                            float vClip = step(minV, v) * step(v, maxV);
+                            
+                            material.diffuse = outColor.rgb;
+                            material.alpha = outColor.a * mix(vClip, 1.0, a); 
+
+                            return material;
+                        }
+                    `
+                },
+                translucent: () => true
+            });
+        }
+    }
+
+    get isConstant(): boolean { return false; }
+    get definitionChanged(): Cesium.Event { return this._definitionChanged; }
+    getType(_time: Cesium.JulianDate): string { return "ArrowEdgeMaterialPropertyTransparentEdge"; }
+
+    dontgetValue(time: Cesium.JulianDate, result?: any): any {
+        if (!result) result = {};
+        result.arrowColor = this._arrowColor.getValue(time);
+        result.dashColor = this._dashColor.getValue(time);
+        result.dashLength = this._dashLength;
+        result.arrowLength = this._arrowLength;
+
+        // 1. Kameranın Yüksekliğini Al (LOD için)
+        let alt = 100000.0;
+        if (this._scene && this._scene.camera) {
+            const carto = this._scene.globe.ellipsoid.cartesianToCartographic(this._scene.camera.positionWC);
+            if (carto) {
+                alt = Math.max(carto.height, 100.0);
+            }
+        }
+
+        // --- SENİN FİKRİN: EN KISA SEGMENT REFERANS MANTIĞI ---
+
+        // 2. En Kısa Segmentin Uzunluğunu Bulalım
+        let minSegmentLength = Number.MAX_VALUE;
+        if (this._positions && this._positions.length >= 2) {
+            for (let i = 0; i < this._positions.length - 1; i++) {
+                const dist = Cesium.Cartesian3.distance(this._positions[i], this._positions[i+1]);
+                if (dist > 0 && dist < minSegmentLength) {
+                    minSegmentLength = dist;
+                }
+            }
+        }
+        // Güvenlik: Eğer tek nokta varsa veya mesafe 0 ise fallback
+        if (minSegmentLength === Number.MAX_VALUE) minSegmentLength = 1000.0; 
+
+        // 3. EN KISA Segment İçin LOD (Zoom) Hesabı
+        // "Kamera bu yükseklikteyken, en kısa parçada kaç ok görmek istiyorum?"
+        // baseAltitude (örneğin 50.000 metre) yükseklikteyken en kısa parçada 1 ok olsun.
+        const BASE_ALTITUDE = 5000000.0; 
+        let arrowsOnMinSegment = BASE_ALTITUDE / alt;
+
+        // En kısa segmentte bile en az 1 ok olsun ki çizgi boş kalmasın
+        // Dibine girince de çok fazla sıkışmasın (Max 10 ok)
+        arrowsOnMinSegment = Math.max(1.0, Math.min(arrowsOnMinSegment, 10.0));
+
+        // 4. Yoğunluk (Density) Hesabı
+        // "Eğer en kısa parçada bu kadar ok varsa, metre başına kaç ok düşüyor?"
+        const arrowsPerMeter = arrowsOnMinSegment / minSegmentLength;
+
+        // 5. TOPLAM Repeat Count ve Oran-Orantı Dağılımı
+        // Metre başına düşen ok sayısını toplam rotanın uzunluğu ile çarpıyoruz.
+        // Shader bu toplamı alacak ve uzun parçaya çok, kısa parçaya az oku OTOMATİK dizecek!
+        const rawTotalArrows = this._totalLengthMeters * arrowsPerMeter;
+
+        // Oklar yarım kalmasın diye tam sayıya yuvarlıyoruz
+        result.repeatCount = Math.max(Math.round(rawTotalArrows), 1.0);
+
+        return result;
+    }
+
+    getValue(time: Cesium.JulianDate, result?: any): any {
+        if (!result) result = {};
+        result.arrowColor = this._arrowColor.getValue(time);
+        result.dashColor = this._dashColor.getValue(time);
+        result.dashLength = this._dashLength;
+        result.arrowLength = this._arrowLength;
+
+        // 1. Kameranın Yüksekliğini Al (LOD için)
+        let alt = 100000.0;
+        if (this._scene && this._scene.camera) {
+            const carto = this._scene.globe.ellipsoid.cartesianToCartographic(this._scene.camera.positionWC);
+            if (carto) {
+                alt = Math.max(carto.height, 100.0);
+            }
+        }
+
+        // --- SENİN FİKRİN: EN KISA SEGMENT REFERANS MANTIĞI ---
+
+        // 2. En Kısa Segmentin Uzunluğunu Bulalım
+        let minSegmentLength = Number.MAX_VALUE;
+        if (this._positions && this._positions.length >= 2) {
+            for (let i = 0; i < this._positions.length - 1; i++) {
+                const dist = Cesium.Cartesian3.distance(this._positions[i], this._positions[i+1]);
+                if (dist > 0 && dist < minSegmentLength) {
+                    minSegmentLength = dist;
+                }
+            }
+        }
+        if (minSegmentLength === Number.MAX_VALUE) minSegmentLength = 1000.0; 
+
+        // ---------------------------------------------------------
+        // --- GÜNCELLENEN KISIM: İHA İÇİN YUMUŞATILMIŞ LOD ---
+        // ---------------------------------------------------------
+
+        // 3. EN KISA Segment İçin LOD (Zoom) Hesabı
+        // İHA rotasını bütünüyle görmek için ideal yükseklik 50 km'dir.
+        const BASE_ALTITUDE = 50000.0; 
+        
+        // Doğrudan bölmek (lineer) yerine Math.sqrt (Karekök) kullanıyoruz.
+        // Bu sayede zoom in yaparken oklar birdenbire patlamaz, "abartmadan" yumuşakça artar.
+        const zoomMultiplier = Math.sqrt(BASE_ALTITUDE / alt);
+        
+        // 50 km yüksekteyken en kısa parçada (15 km'lik tırmanış) 1 ok görmek istiyoruz
+        let arrowsOnMinSegment = 1.0 * zoomMultiplier;
+
+        // Kelepçe: En kısa segmentte en az 1 ok olsun (boş kalmasın).
+        // Ne kadar yaklaşırsak yaklaşalım en fazla 8 ok olsun (karınca duasına dönmesin).
+        arrowsOnMinSegment = Math.max(1.0, Math.min(arrowsOnMinSegment, 8.0));
+
+        // ---------------------------------------------------------
+
+        // 4. Yoğunluk (Density) Hesabı
+        const arrowsPerMeter = arrowsOnMinSegment / minSegmentLength;
+
+        // 5. TOPLAM Repeat Count ve Oran-Orantı Dağılımı
+        const rawTotalArrows = this._totalLengthMeters * arrowsPerMeter;
+
+        // Oklar yarım kalmasın diye tam sayıya yuvarlıyoruz
+        result.repeatCount = Math.max(Math.round(rawTotalArrows), 1.0);
+
+        return result;
+    }
+    equals(other: Cesium.MaterialProperty): boolean {
+        return this === other;
+    }
+}
+
+
+export class ArrowEdgeMaterialProperty2duzgun_4 implements Cesium.MaterialProperty {
+    private _arrowColor: Cesium.Property;
+    private _dashColor: Cesium.Property;
+    private _dashLength: number;
+    private _arrowLength: number;
+    private _positions: Cesium.Cartesian3[];
+    private _totalLengthMeters: number;
+    private _scene: Cesium.Scene;
+    private _definitionChanged: Cesium.Event;
+
+    constructor(
+        arrowColor: Cesium.Color,
+        dashColor: Cesium.Property, // CallbackProperty veya ConstantProperty
+        scene: Cesium.Scene,
+        positions: Cesium.Cartesian3[],
+        totalLengthMeters: number,
+        dashLength: number = 115.0,
+        arrowLength: number = 35.0
+    ) {
+        this._arrowColor = new Cesium.ConstantProperty(arrowColor);
+        this._dashColor = dashColor;
+        this._scene = scene;
+        this._positions = positions;
+        this._totalLengthMeters = totalLengthMeters;
+        this._dashLength = dashLength;
+        this._arrowLength = arrowLength;
+        this._definitionChanged = new Cesium.Event();
+
+        if (!(Cesium.Material as any)._materialCache._materials["ArrowEdgeMaterialPropertyTransparentEdge"]) {
+           (Cesium.Material as any)._materialCache.addMaterial("ArrowEdgeMaterialPropertyTransparentEdge", {
+                fabric: {
+                    type: "ArrowEdgeMaterialPropertyTransparentEdge",
+                    uniforms: {
+                        arrowColor: Cesium.Color.WHITE,
+                        dashColor: Cesium.Color.PURPLE,
+                        dashLength: 115.0,
+                        arrowLength: 35.0,
+                        repeatCount: 1.0,
+                        minV: 0.40,
+                        maxV: 0.60
+                    },
+                    source: `
+                        uniform vec4 arrowColor;   
+                        uniform vec4 dashColor;
+                        uniform float dashLength;
+                        uniform float arrowLength;
+                        uniform float repeatCount;
+                        uniform float minV;
+                        uniform float maxV;
+
+                        float modp(float x, float len) {
+                            float m = mod(x, len);
+                            return m < 0.0 ? m + len : m;
+                        }
+
+                        float arrowMask(float u, float v) {
+                            const float bodyFrac = 0.35;
+                            const float bodyH    = 0.35;
+                            float halfBody = bodyH * 0.5;
+                            float c = abs(v - 0.5);
+
+                            float inBodyU = 1.0 - step(bodyFrac, u);
+                            float inBodyV = 1.0 - step(halfBody, c);
+                            float alphaBody = inBodyU * inBodyV;
+
+                            float b = clamp((u - bodyFrac) / max(1.0 - bodyFrac, 1e-6), 0.0, 1.0);
+                            float halfHead = 0.5 * (1.0 - b);
+                            float inHeadU  = step(bodyFrac, u);
+                            float inHeadV  = 1.0 - step(halfHead, c);
+                            float alphaHead = inHeadU * inHeadV;
+
+                            return clamp(max(alphaBody, alphaHead), 0.0, 1.0);
+                        }
+
+                        czm_material czm_getMaterial(czm_materialInput materialInput) {
+                            czm_material material = czm_getDefaultMaterial(materialInput);
+                            float s = materialInput.st.s;
+                            float v = materialInput.st.t;
+
+                            float xInSeg = modp(s * repeatCount, 1.0);
+
+                            float totalPixels = dashLength + arrowLength;
+                            float dashRatio = dashLength / totalPixels;
+                            float arrowRatio = arrowLength / totalPixels;
+
+                            float inArrow = step(dashRatio, xInSeg); 
+                            float u = clamp((xInSeg - dashRatio) / max(arrowRatio, 0.001), 0.0, 1.0);
+                            float a = inArrow * arrowMask(u, v);
+
+                            vec4 outColor = mix(dashColor, arrowColor, a);
+                            float vClip = step(minV, v) * step(v, maxV);
+                            
+                            material.diffuse = outColor.rgb;
+                            material.alpha = outColor.a * mix(vClip, 1.0, a); 
+
+                            return material;
+                        }
+                    `
+                },
+                translucent: () => true
+            });
+        }
+    }
+
+    get isConstant(): boolean { return false; }
+    get definitionChanged(): Cesium.Event { return this._definitionChanged; }
+    getType(_time: Cesium.JulianDate): string { return "ArrowEdgeMaterialPropertyTransparentEdge"; }
+
+getValue(time: Cesium.JulianDate, result?: any): any {
+    if (!result) result = {};
+    result.arrowColor = this._arrowColor.getValue(time);
+    result.dashColor = this._dashColor.getValue(time);
+    result.dashLength = this._dashLength;
+    result.arrowLength = this._arrowLength;
+
+    // 1. Kameranın Yüksekliğini Al
+    let alt = 100000.0;
+    if (this._scene && this._scene.camera) {
+        const carto = this._scene.globe.ellipsoid.cartesianToCartographic(this._scene.camera.positionWC);
+        if (carto) {
+            alt = Math.max(carto.height, 500.0); // Yere çakılma payı (500m)
+        }
+    }
+
+    // --- SHADER BEST PRACTICE: LOGARİTMİK LOD MANTIĞI ---
+
+    // 2. Referans Yoğunluğu (Ana Çıpa)
+    // "Kamera 100 km yukarıdayken, her 20 kilometrede 1 ok olsun"
+    const REF_ALTITUDE = 100000.0; 
+    const BASE_METERS_PER_ARROW = 20000.0; 
+
+    // 3. Logaritmik Zoom Seviyesi (Sihirli Kısım)
+    // Math.log2 kullanımı, harita sektörünün altın kuralıdır.
+    // Yükseklik her yarıya düştüğünde (100k -> 50k -> 25k) zoomLevel tam 1 artar.
+    const altRatio = REF_ALTITUDE / alt;
+    const zoomLevel = Math.log2(Math.max(altRatio, 0.1)); 
+
+    // 4. "Abartmadan" Çoğaltma Çarpanı
+    // Eğer 2.0 kullanırsak her zoom'da ok sayısı 2'ye katlanır (Çok abartılı olur).
+    // 1.3 ile 1.6 arası bir değer kullanmak, gözü yormayan o "tatlı" geçişi sağlar.
+    const scaleFactor = Math.pow(1.5, zoomLevel); 
+
+    // 5. O Anki İdeal Boşluk (Mesafe)
+    let currentMetersPerArrow = BASE_METERS_PER_ARROW / scaleFactor;
+
+    // 6. Güvenlik Kelepçesi (Sınırlar)
+    // Ne kadar yaklaşırsan yaklaş oklar arası 2 km'den daha fazla sıkışmasın.
+    // Ne kadar uzaklaşırsan uzaklaş oklar arası 100 km'den daha fazla açılmasın.
+    currentMetersPerArrow = Math.max(2000.0, Math.min(currentMetersPerArrow, 100000.0));
+
+    // 7. Toplam Rota Üzerinden Tek Hesap (Segment İnadı Yok!)
+    // Toplam uzunluğu, o anki ideal ok boşluğuna bölüyoruz.
+    const rawRepeat = this._totalLengthMeters / currentMetersPerArrow;
+
+    // 8. Sonuç
+    // Yarım ok çıkmasını engellemek için tam sayıya yuvarlıyoruz.
+    result.repeatCount = Math.max(Math.round(rawRepeat), 1.0);
+
+    return result;
+}
+    equals(other: Cesium.MaterialProperty): boolean {
+        return this === other;
+    }
+}
+
 
 export class ArrowEdgeMaterialProperty22 implements Cesium.MaterialProperty {
     private _arrowColor: Cesium.Property;
@@ -1471,3 +2047,139 @@ export class ChevronDoubleArrowEdgeMaterialProperty implements Cesium.MaterialPr
     }
 }
 */
+
+// ============================================================================
+// HİBRİT YAKLAŞIM: Dünya-Çakılı Pozisyon + Ekran-Uzayı Şekil Boyutlandırma
+// ============================================================================
+// Bu sınıf 3 hedefe aynı anda ulaşır:
+// 1. Oklar polyline üzerinde eşit mesafeli → st.s (mesafe bazlı, 0→1)
+// 2. Pan sırasında kaymaz → repeatCount SABİT (kamera ile değişmez)
+// 3. Perspektifte bozulmaz → czm_metersPerPixel per-piksel hesap (shader'da)
+// ============================================================================
+export class ArrowEdgeMaterialPropertySabit implements Cesium.MaterialProperty {
+    private _arrowColor: Cesium.Property;
+    private _dashColor: Cesium.Property;
+    private _repeatCount: number;          // SABİT — kamera ile DEĞİŞMEZ
+    private _totalLengthMeters: number;    // Polyline'ın gerçek uzunluğu (metre)
+    private _arrowPixelSize: number;       // Okun hedef ekran boyutu (piksel)
+    private _definitionChanged: Cesium.Event;
+
+    constructor(
+        arrowColor: Cesium.Color,
+        dashColor: Cesium.Property,
+        totalLengthMeters: number,
+        positions: Cesium.Cartesian3[],
+        desiredSpacingMeters: number = 15000.0,  // Her 15 km'de bir ok
+        arrowPixelSize: number = 20.0            // Ok boyutu (piksel)
+    ) {
+        this._arrowColor = new Cesium.ConstantProperty(arrowColor);
+        this._dashColor = dashColor;
+        this._totalLengthMeters = totalLengthMeters;
+        this._arrowPixelSize = arrowPixelSize;
+        this._definitionChanged = new Cesium.Event();
+
+        // ÖNEMLİ: repeatCount BİR KEZ hesaplanır, bir daha DEĞİŞMEZ.
+        // Bu sayede oklar pan/zoom sırasında ASLA kaymaz.
+        this._repeatCount = Math.max(Math.round(totalLengthMeters / desiredSpacingMeters), 1);
+
+        // Materyal tanımı — Cesium'un cache'ine sadece 1 kez eklenir
+        if (!(Cesium.Material as any)._materialCache._materials["ArrowEdgeSabitMaterial"]) {
+            (Cesium.Material as any)._materialCache.addMaterial("ArrowEdgeSabitMaterial", {
+                fabric: {
+                    type: "ArrowEdgeSabitMaterial",
+                    uniforms: {
+                        arrowColor: Cesium.Color.WHITE,
+                        dashColor: Cesium.Color.PURPLE,
+                        repeatCount: 1.0,
+                        totalLengthMeters: 1000.0,
+                        arrowPixelSize: 20.0,
+                        minV: 0.40,
+                        maxV: 0.60
+                    },
+                    source: `
+                        uniform vec4 arrowColor;
+                        uniform vec4 dashColor;
+                        uniform float repeatCount;        // SABİT ok sayısı
+                        uniform float totalLengthMeters;  // Polyline gerçek uzunluğu
+                        uniform float arrowPixelSize;     // Ok hedef piksel boyutu
+                        uniform float minV;
+                        uniform float maxV;
+
+                        // Ok şekli: Gövde (dikdörtgen) + Baş (üçgen)
+                        float arrowMask(float u, float v) {
+                            const float bodyFrac = 0.35;
+                            const float bodyH    = 0.35;
+                            float halfBody = bodyH * 0.5;
+                            float c = abs(v - 0.5);
+
+                            float inBodyU = 1.0 - step(bodyFrac, u);
+                            float inBodyV = 1.0 - step(halfBody, c);
+                            float alphaBody = inBodyU * inBodyV;
+
+                            float b = clamp((u - bodyFrac) / max(1.0 - bodyFrac, 1e-6), 0.0, 1.0);
+                            float halfHead = 0.5 * (1.0 - b);
+                            float inHeadU  = step(bodyFrac, u);
+                            float inHeadV  = 1.0 - step(halfHead, c);
+                            float alphaHead = inHeadU * inHeadV;
+
+                            return clamp(max(alphaBody, alphaHead), 0.0, 1.0);
+                        }
+
+                        czm_material czm_getMaterial(czm_materialInput materialInput) {
+                            czm_material material = czm_getDefaultMaterial(materialInput);
+                            float s = materialInput.st.s;
+                            float v = materialInput.st.t;
+
+                            // Hücre tespiti (dünya-çakılı)
+                            float cellCoord = s * repeatCount;
+                            float cellIndex = floor(cellCoord);
+                            float cellProgress = fract(cellCoord);
+
+                            // Sabit oran
+                            const float DASH_RATIO = 0.75;
+
+                            // st.s → piksel dönüşüm katsayısı
+                            // noperspective ile segment içinde sabit
+                            // ama doğru piksel dönüşümü veriyor
+                            float gradLen = length(vec2(dFdx(cellCoord), dFdy(cellCoord)));
+
+                            // Ok bölgesi tespiti
+                            float inArrow = step(DASH_RATIO, cellProgress);
+                            float progress = cellProgress - DASH_RATIO;
+                            float pixels = progress / max(gradLen, 1e-6);
+                            float u = clamp(pixels / max(arrowPixelSize, 1.0), 0.0, 1.0);
+                            float a = inArrow * arrowMask(u, v);
+
+                            // Renkleme
+                            vec4 outColor = mix(dashColor, arrowColor, a);
+                            material.diffuse = outColor.rgb;
+                            material.alpha = outColor.a;
+
+                            return material;
+                        }
+                    `
+                },
+                translucent: () => true
+            });
+        }
+    }
+
+    get isConstant(): boolean { return false; }
+    get definitionChanged(): Cesium.Event { return this._definitionChanged; }
+    getType(_time: Cesium.JulianDate): string { return "ArrowEdgeSabitMaterial"; }
+
+    // getValue: Sabit değerleri shader'a gönderir — kamera hesabı YOK
+    getValue(time: Cesium.JulianDate, result?: any): any {
+        if (!result) result = {};
+        result.arrowColor = this._arrowColor.getValue(time);
+        result.dashColor = this._dashColor.getValue(time);
+        result.repeatCount = this._repeatCount;
+        result.totalLengthMeters = this._totalLengthMeters;
+        result.arrowPixelSize = this._arrowPixelSize;
+        return result;
+    }
+
+    equals(other: Cesium.MaterialProperty): boolean {
+        return this === other;
+    }
+}

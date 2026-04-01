@@ -501,11 +501,24 @@ async function initializeCesium() {
 */
 
         try {
-            const { ucusRotasiEkle1  ,ucusRotasiEkle2} = await import('./polyline_work/ucusRotasi');
+            const { ucusRotasiEkle, ucusRotasiEkle1  ,ucusRotasiEkle2,ucusRotasiEkle_corridor,ucusRotasiEkle_sabit} = await import('./polyline_work/ucusRotasi');
             //await ucusRotasiEkle1();
-            await ucusRotasiEkle2();
+            //await ucusRotasiEkle2();
             //await ucusRotasiEkle();
+            //await ucusRotasiEkle_corridor();
+            await ucusRotasiEkle_sabit();
         } catch (e) { console.warn('ucusRotasiEkle yüklenemedi:', e); }
+
+        // Etkileşimli Çizim Aracı Kısayolu (R tuşu)
+        document.addEventListener('keydown', async (e) => {
+            if (e.key === 'r' || e.key === 'R') {
+                try {
+                    const { interaktifRotaCiziminiBaslat } = await import('./polyline_work/ucusRotasi');
+                    interaktifRotaCiziminiBaslat(1000.0);
+                    console.log("✏️ Çizim aracı aktif! Haritaya SOL TIK ile noktalar ekleyin. SAĞ TIK ile bitirin. (İrtifa: 1000m)");
+                } catch (err) { console.error("Çizim aracı başlatılamadı:", err); }
+            }
+        });
 
         console.log('✅ Ready! SignalR connected. Harita managers loaded.');
     } catch (error) {
