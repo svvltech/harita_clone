@@ -1,17 +1,17 @@
 {
   "format": 1,
   "restore": {
-    "C:\\Users\\PC_5508\\Desktop\\paralel_harita\\Harita_Clone_Deneme\\CesiumWpfApp\\CesiumWpfApp.csproj": {}
+    "D:\\sates\\paralel_harita\\Harita_Clone_Deneme\\CesiumWpfApp\\CesiumWpfApp.csproj": {}
   },
   "projects": {
-    "C:\\Users\\PC_5508\\Desktop\\paralel_harita\\Harita_Clone_Deneme\\CesiumWpfApp\\CesiumWpfApp.csproj": {
+    "D:\\sates\\paralel_harita\\Harita_Clone_Deneme\\CesiumWpfApp\\CesiumWpfApp.csproj": {
       "version": "1.0.0",
       "restore": {
-        "projectUniqueName": "C:\\Users\\PC_5508\\Desktop\\paralel_harita\\Harita_Clone_Deneme\\CesiumWpfApp\\CesiumWpfApp.csproj",
+        "projectUniqueName": "D:\\sates\\paralel_harita\\Harita_Clone_Deneme\\CesiumWpfApp\\CesiumWpfApp.csproj",
         "projectName": "CesiumWpfApp",
-        "projectPath": "C:\\Users\\PC_5508\\Desktop\\paralel_harita\\Harita_Clone_Deneme\\CesiumWpfApp\\CesiumWpfApp.csproj",
+        "projectPath": "D:\\sates\\paralel_harita\\Harita_Clone_Deneme\\CesiumWpfApp\\CesiumWpfApp.csproj",
         "packagesPath": "C:\\Users\\PC_5508\\.nuget\\packages\\",
-        "outputPath": "C:\\Users\\PC_5508\\Desktop\\paralel_harita\\Harita_Clone_Deneme\\CesiumWpfApp\\obj\\",
+        "outputPath": "D:\\sates\\paralel_harita\\Harita_Clone_Deneme\\CesiumWpfApp\\obj\\",
         "projectStyle": "PackageReference",
         "fallbackFolders": [
           "C:\\Program Files (x86)\\Microsoft Visual Studio\\Shared\\NuGetPackages"

@@ -8,7 +8,7 @@ import {
 } from 'cesium';
 import * as signalR from '@microsoft/signalr';
 import { setViewer } from './harita';
-import { ucusRotasiEkle, ucusRotasiEkleIlk } from './polyline_work/ucusRotasi';
+import { ucusRotasiEkle, ucusRotasiEkle2_kusursuz, ucusRotasiEkle_arrowMesh, ucusRotasiEkleIlk, ucusRotasiEkleIlk_Border } from './polyline_work/ucusRotasi';
 
 Ion.defaultAccessToken = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJqdGkiOiIzYzczNWQwYy1iNmE4LTRiYWYtOTlmNi02OGFlOTM4YmUyYmEiLCJpZCI6MjY3NzM2LCJpYXQiOjE3NDQyMzE2ODN9.U72KcRtBEhdciByjNEOXCdG2T_rogCDdwziOsx4b6yg';
 
@@ -506,7 +506,10 @@ async function initializeCesium() {
             //await ucusRotasiEkle2();
             //await ucusRotasiEkle();
             //await ucusRotasiEkle_corridor();
-            await ucusRotasiEkle_sabit();
+            //await ucusRotasiEkle_sabit();
+            //await ucusRotasiEkle2_kusursuz();
+            //ucusRotasiEkle_arrowMesh();
+            await ucusRotasiEkleIlk_Border();
         } catch (e) { console.warn('ucusRotasiEkle yüklenemedi:', e); }
 
         // Etkileşimli Çizim Aracı Kısayolu (R tuşu)

@@ -1,8 +1,8 @@
 {
   "version": 2,
-  "dgSpecHash": "7NqLmPqffcMNKcMptV9TOgbwLfFNCcOGG+QPvSOfSH9GhqMw8eELoQrVXHb14ghD6JTCuFhXEK7TyFCuDgeFyQ==",
+  "dgSpecHash": "KS30PhRDT8qeTK3QmYzT6NWIEma6PIHY9puYxADlhqEZgaFbM/efUCVSy+qQA32k//qzkujI7KinomqOYJki9w==",
   "success": true,
-  "projectFilePath": "C:\\Users\\PC_5508\\Desktop\\paralel_harita\\Harita_Clone_Deneme\\CesiumWpfApp\\CesiumWpfApp.csproj",
+  "projectFilePath": "D:\\sates\\paralel_harita\\Harita_Clone_Deneme\\CesiumWpfApp\\CesiumWpfApp.csproj",
   "expectedPackageFiles": [
     "C:\\Users\\PC_5508\\.nuget\\packages\\cefsharp.common.netcore\\126.2.70\\cefsharp.common.netcore.126.2.70.nupkg.sha512",
     "C:\\Users\\PC_5508\\.nuget\\packages\\cefsharp.wpf.netcore\\126.2.70\\cefsharp.wpf.netcore.126.2.70.nupkg.sha512",

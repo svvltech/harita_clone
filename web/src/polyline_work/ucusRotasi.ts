@@ -1,5 +1,5 @@
 import * as Cesium from 'cesium';
-import { ArrowEdgeMaterialProperty, ArrowEdgeMaterialProperty1,ArrowEdgeMaterialProperty2,ArrowEdgeMaterialProperty2duzgun_1, ArrowEdgeMaterialProperty2duzgun_2, ArrowEdgeMaterialProperty2duzgun_3, ArrowEdgeMaterialProperty2duzgun_4, ArrowEdgeMaterialProperty2son, ArrowEdgeMaterialPropertyIlk, ArrowEdgeMaterialPropertySabit } from './shaders';
+import { ArrowEdgeMaterialProperty, ArrowEdgeMaterialProperty1,ArrowEdgeMaterialProperty2,ArrowEdgeMaterialProperty2duzgun_1, ArrowEdgeMaterialProperty2duzgun_2, ArrowEdgeMaterialProperty2duzgun_3, ArrowEdgeMaterialProperty2duzgun_4, ArrowEdgeMaterialProperty2son, ArrowEdgeMaterialProperty_Border_Ekle, ArrowEdgeMaterialProperty_Kusursuz, ArrowEdgeMaterialPropertyIlk, ArrowEdgeMaterialPropertyIlk_Border, ArrowEdgeMaterialPropertySabit } from './shaders';
 import { viewer } from "../harita";
 
 export const ucusRotasiEkle1 = (): void => {
@@ -12,7 +12,7 @@ export const ucusRotasiEkle1 = (): void => {
     // dashColor bir CallbackProperty bekliyor. 
     // İleride buraya zamana bağlı bir renk değişimi (yanıp sönme vb.) ekleyebilirsin.
     // Şimdilik shader kodundaki varsayılan mor/pembe tonunu sabit olarak döndürüyoruz.
-    const çizgiRengi = new Cesium.CallbackProperty(() => {
+    const cizgiRengi = new Cesium.CallbackProperty(() => {
         return Cesium.Color.fromBytes(239, 12, 249, 255);
     }, false); // false = değerin her karede sürekli hesaplanmasına gerek yok (sabit)
 
@@ -22,7 +22,7 @@ export const ucusRotasiEkle1 = (): void => {
 
     const ucusRotasiMateryali = new ArrowEdgeMaterialProperty1(
         okRengi,
-        çizgiRengi,
+        cizgiRengi,
         viewer.scene,      // Eklenen parametre
         routeStartPoint    // Eklenen parametre
     );
@@ -348,7 +348,7 @@ export const ucusRotasiEkleIlk = (): void => {
     if (!viewer) return;
 
     // 2. Materyal parametrelerini hazırlıyoruz
-    const okRengi = Cesium.Color.BLACK;
+    const okRengi = Cesium.Color.WHITE;
 
     // dashColor bir CallbackProperty bekliyor. 
     // İleride buraya zamana bağlı bir renk değişimi (yanıp sönme vb.) ekleyebilirsin.
@@ -404,6 +404,69 @@ export const ucusRotasiEkleIlk = (): void => {
   }
 };
 
+export const ucusRotasiEkleIlk_Border = (): void => {
+  try {
+    if (!viewer) return;
+
+    // 2. Materyal parametrelerini hazırlıyoruz
+    const okRengi = Cesium.Color.WHITE;
+
+    // dashColor bir CallbackProperty bekliyor. 
+    // İleride buraya zamana bağlı bir renk değişimi (yanıp sönme vb.) ekleyebilirsin.
+    // Şimdilik shader kodundaki varsayılan mor/pembe tonunu sabit olarak döndürüyoruz.
+    const çizgiRengi = new Cesium.CallbackProperty(() => {
+        return Cesium.Color.fromBytes(239, 12, 249, 255);
+    }, false); // false = değerin her karede sürekli hesaplanmasına gerek yok (sabit)
+
+
+    const borderColor = Cesium.Color.BLACK; // YENİ: Uniform'a varsayılan renk eklendi
+    const borderWidth = 0.0;  
+    // 3. Custom materyalimizi örnekliyoruz
+    const ucusRotasiMateryali = new ArrowEdgeMaterialProperty_Border_Ekle(okRengi, çizgiRengi,borderColor,borderWidth);
+
+    // 4. Uçuş rotası için 3D koordinatlar (Boylam, Enlem, İrtifa-Metre)
+    // Uçak yörüngesini simüle etmek için giderek artan bir irtifa kullanıyoruz.
+    const kayma = 0.5;
+    const rotaKoordinatlari = Cesium.Cartesian3.fromDegreesArrayHeights([
+        // 1. Nokta: Başlangıç
+        29.000, 41.000 + kayma, 10000.0,  
+        
+        // 2. Nokta: Tam 0.5 derece DOĞUYA düz uçuş
+        29.500, 41.000 + kayma, 10000.0,  
+        
+        // 3. Nokta: Tam 0.5 derece GÜNEYDOĞUYA çapraz iniş 
+        // (X'te 0.25, Y'de 0.433 ilerlersek hipotenüs tam 0.5 olur)
+        29.750, 40.567 + kayma, 10000.0,  
+        
+        // 4. Nokta: Yine tam 0.5 derece DOĞUYA düz uçuş
+        30.250, 40.567 + kayma, 10000.0   
+    ]);
+
+
+    // 5. Entity'i (Çizgiyi) haritaya ekliyoruz
+    const ucusRotasi = viewer.entities.add({
+        name: 'Örnek Uçuş Rotası',
+        polyline: {
+            positions: rotaKoordinatlari,
+            // Okların içerideki detaylarının (V şekli, gövde vb.) net görünmesi için 
+            // çizgi kalınlığını biraz yüksek tutmak iyi bir pratiktir.
+            width: 30, 
+            material: ucusRotasiMateryali,
+            // Uçuş rotası olduğu için arazinin üzerine yapışmasın, havada kalsın:
+            clampToGround: false 
+        }
+        
+    });
+
+    viewer.zoomTo(ucusRotasi);
+
+    console.log("ucusRotasi eklendi:", ucusRotasi);
+
+
+  } catch (error) {
+    console.error("ucusRotasi hata:", error);
+  }
+};
 export const ucusRotasiEkle = (): void => {
   try {
     if (!viewer) return;
@@ -456,6 +519,280 @@ export const ucusRotasiEkle = (): void => {
     console.error("ucusRotasi hata:", error);
   }
 };
+
+export const ucusRotasiEkle2_kusursuz = (): void => {
+if (!viewer) return;
+
+    const kayma = 0.1;
+    
+    // Rota Koordinatları
+    const rotaKoordinatlari = Cesium.Cartesian3.fromDegreesArrayHeights([
+        29.000, 41.000 + kayma, 10000.0,  
+        29.500, 41.000 + kayma, 10000.0,  
+        29.750, 40.567 + kayma, 10000.0,  
+        30.250, 40.567 + kayma, 10000.0   
+    ]);
+
+    // 1. ZEMİN ROTASI (Kesintisiz Ana Hat)
+    // Bu sadece yolu gösteren mor çizgimiz. Ok içermiyor. 
+    // Virajlarda asla yırtılmaz, bükülmez, taktiksel harita için bir kılavuz görevi görür. Havada 10k'da uçar.
+    viewer.entities.add({
+        name: 'Ana Rota Zemini',
+        polyline: {
+            positions: rotaKoordinatlari,
+            width: 3, // İnce bir kılavuz çizgi
+            material: Cesium.Color.fromBytes(239, 12, 249, 255) // Mor rengin
+        }
+    });
+
+    const cizgiRengi = new Cesium.CallbackProperty(() => {
+        return Cesium.Color.TRANSPARENT
+    }, false); // false = değerin her karede sürekli hesaplanmasına gerek yok (sabit)
+
+
+    // 2. OK KATMANI (Nihai Kusursuz Çözüm)
+    // Her bir düz parça için ayrı bir Polyline ve ayrı bir Materyal oluşturuyoruz.
+    // Bu parçalı mimari virajlardaki yırtılma ve deformasyon sorununu kökünden çözer.
+    for (let i = 0; i < rotaKoordinatlari.length - 1; i++) {
+        const baslangic = rotaKoordinatlari[i];
+        const bitis = rotaKoordinatlari[i + 1];
+        
+        // Sadece bu kısa parçanın DÜNYADAKİ gerçek metre uzunluğu
+        // st.s ile kusursuz örtüşmesi için bu değeri Shader'a göndermeliyiz.
+        const segmentMesafe = Cesium.Cartesian3.distance(baslangic, bitis);
+
+        // Materyali sadece bu düz parça için başlatıyoruz
+        const okMateryali = new ArrowEdgeMaterialProperty_Kusursuz(
+            Cesium.Color.WHITE,
+            cizgiRengi, // Çizgi kısmını ŞEFFAF yapıyoruz ki alttaki mor zemin görünsün!
+            viewer.scene,
+            segmentMesafe, // Segmentin gerçek dünya uzunluğu
+            35.0   // Ok her açıdan 35 pixel kalacak
+        );
+
+        // Düz parçayı haritaya ekle
+        viewer.entities.add({
+            name: `Ok Segmenti ${i+1}`,
+            polyline: {
+                positions: [baslangic, bitis],
+                width: 7, // Okların zeminden daha kalın/belirgin olması için
+                material: okMateryali
+            }
+        });
+    }
+
+    viewer.zoomTo(viewer.entities);
+ 
+};
+
+//////////////// 010426
+
+// ============================================================================
+// ARROW MESH: Rota üzerinde 3D üçgen ok geometrileri
+// ============================================================================
+
+/**
+ * Rota boyunca eşit aralıklarla pozisyon ve yön örnekleri alır.
+ */
+function rotaBoyuncaOrnekle(
+    pozisyonlar: Cesium.Cartesian3[],
+    aralikMetre: number
+): Array<{ pozisyon: Cesium.Cartesian3; yon: Cesium.Cartesian3 }> {
+    const sonuc: Array<{ pozisyon: Cesium.Cartesian3; yon: Cesium.Cartesian3 }> = [];
+    let toplamMesafe = 0;
+    let sonrakiOrnekMesafe = aralikMetre / 2; // İlk ok yarım aralıkta
+
+    for (let i = 0; i < pozisyonlar.length - 1; i++) {
+        const baslangic = pozisyonlar[i];
+        const bitis = pozisyonlar[i + 1];
+        const segUzunluk = Cesium.Cartesian3.distance(baslangic, bitis);
+        if (segUzunluk < 1) continue;
+
+        const yon = Cesium.Cartesian3.subtract(bitis, baslangic, new Cesium.Cartesian3());
+        Cesium.Cartesian3.normalize(yon, yon);
+
+        while (sonrakiOrnekMesafe <= toplamMesafe + segUzunluk) {
+            const t = (sonrakiOrnekMesafe - toplamMesafe) / segUzunluk;
+            const poz = Cesium.Cartesian3.lerp(baslangic, bitis, t, new Cesium.Cartesian3());
+            sonuc.push({ pozisyon: poz, yon: Cesium.Cartesian3.clone(yon) });
+            sonrakiOrnekMesafe += aralikMetre;
+        }
+        toplamMesafe += segUzunluk;
+    }
+    return sonuc;
+}
+
+/**
+ * Ok'un dünya pozisyonunu ve rota yönüne dönüş matrisini hesaplar.
+ * Ok geometrisi +X yönünde tanımlı → tangent yönüne döndürülür.
+ */
+function okModelMatrisiHesapla(
+    pozisyon: Cesium.Cartesian3,
+    yon: Cesium.Cartesian3
+): Cesium.Matrix4 {
+    // ENU (East-North-Up) çerçevesi
+    const enuMatris = Cesium.Transforms.eastNorthUpToFixedFrame(pozisyon);
+
+    // Yön vektörünü ECEF → ENU'ya dönüştür
+    const tersEnu = Cesium.Matrix4.inverseTransformation(enuMatris, new Cesium.Matrix4());
+    const yonEnu = Cesium.Matrix4.multiplyByPointAsVector(tersEnu, yon, new Cesium.Cartesian3());
+
+    // Ok +X yönünde → East'ten tangent yönüne açıyı bul
+    const aci = Math.atan2(yonEnu.y, yonEnu.x);
+
+    // Z (Up) ekseni etrafında döndür
+    const donusMatris = Cesium.Matrix4.fromRotationTranslation(
+        Cesium.Matrix3.fromRotationZ(aci)
+    );
+
+    // Final: dünya pozisyonu × yerel dönüş
+    return Cesium.Matrix4.multiply(enuMatris, donusMatris, new Cesium.Matrix4());
+}
+
+/**
+ * Rota boyunca 3D ok mesh'leri oluşturur.
+ * Her ok = 7 vertex, 3 üçgen (gövde dikdörtgen + baş üçgen).
+ * Tüm oklar tek Primitive'de batch edilir.
+ */
+export function rotaOklariniOlustur(
+    pozisyonlar: Cesium.Cartesian3[],
+    aralikMetre: number,
+    okUzunlukMetre: number,
+    okGenislikMetre: number,
+    renk: Cesium.Color
+): Cesium.Primitive {
+    const ornekler = rotaBoyuncaOrnekle(pozisyonlar, aralikMetre);
+
+    // Ok geometrisi: +X yönünde, orijinde merkezi, XY düzleminde
+    const yarimL = okUzunlukMetre / 2;
+    const govdeOran = 0.6;
+    const govdeYarimW = okGenislikMetre * 0.15;
+    const basYarimW = okGenislikMetre * 0.5;
+    const govdeBitis = -yarimL + okUzunlukMetre * govdeOran;
+    const zOfset = 50.0; // Polyline ile z-fighting önleme
+
+    // 7 vertex: 4 gövde + 3 baş
+    const pozlar = new Float64Array([
+        -yarimL,    -govdeYarimW, zOfset,  // 0: gövde sol-arka
+         govdeBitis, -govdeYarimW, zOfset,  // 1: gövde sol-ön
+         govdeBitis,  govdeYarimW, zOfset,  // 2: gövde sağ-ön
+        -yarimL,     govdeYarimW, zOfset,  // 3: gövde sağ-arka
+         govdeBitis, -basYarimW,  zOfset,  // 4: baş sol
+         yarimL,      0,          zOfset,  // 5: baş ucu
+         govdeBitis,  basYarimW,  zOfset,  // 6: baş sağ
+    ]);
+
+    // 3 üçgen: 2 gövde + 1 baş = 9 indis
+    const indisler = new Uint16Array([
+        0, 1, 2,  0, 2, 3,  // Gövde (dikdörtgen → 2 üçgen)
+        4, 5, 6             // Baş (üçgen)
+    ]);
+
+    // Normal: hepsi +Z (yukarı)
+    const normaller = new Float32Array([
+        0, 0, 1,  0, 0, 1,  0, 0, 1,  0, 0, 1,
+        0, 0, 1,  0, 0, 1,  0, 0, 1
+    ]);
+
+    const okGeometri = new Cesium.Geometry({
+        attributes: {
+            position: new Cesium.GeometryAttribute({
+                componentDatatype: Cesium.ComponentDatatype.DOUBLE,
+                componentsPerAttribute: 3,
+                values: pozlar
+            }),
+            normal: new Cesium.GeometryAttribute({
+                componentDatatype: Cesium.ComponentDatatype.FLOAT,
+                componentsPerAttribute: 3,
+                values: normaller
+            })
+        } as any,
+        indices: indisler,
+        primitiveType: Cesium.PrimitiveType.TRIANGLES,
+        boundingSphere: Cesium.BoundingSphere.fromVertices(Array.from(pozlar))
+    });
+
+    // Her ok için GeometryInstance (kendi modelMatrix'i ile)
+    const instancelar = ornekler.map((ornek, i) => {
+        return new Cesium.GeometryInstance({
+            geometry: okGeometri,
+            modelMatrix: okModelMatrisiHesapla(ornek.pozisyon, ornek.yon),
+            attributes: {
+                color: Cesium.ColorGeometryInstanceAttribute.fromColor(renk)
+            },
+            id: `ok_${i}`
+        });
+    });
+
+    return new Cesium.Primitive({
+        geometryInstances: instancelar,
+        appearance: new Cesium.PerInstanceColorAppearance({
+            flat: true,
+            translucent: false
+        }),
+        asynchronous: false
+    });
+}
+
+// ============================================================================
+// TEST: Polyline (çizgi) + Arrow Mesh (3D oklar)
+// ============================================================================
+export const ucusRotasiEkle_arrowMesh = (): void => {
+    if (!viewer) return;
+
+    const kayma = 0.1;
+    const rotaKoordinatlari = Cesium.Cartesian3.fromDegreesArrayHeights([
+        29.000, 41.000 + kayma, 10000.0,
+        29.500, 41.000 + kayma, 10000.0,
+        29.750, 40.567 + kayma, 10000.0,
+        30.250, 40.567 + kayma, 10000.0
+    ]);
+
+    // Toplam uzunluk
+    let toplamMetre = 0;
+    for (let i = 0; i < rotaKoordinatlari.length - 1; i++) {
+        toplamMetre += Cesium.Cartesian3.distance(rotaKoordinatlari[i], rotaKoordinatlari[i + 1]);
+    }
+
+    // 1. Rota çizgisi (sadece düz magenta çizgi)
+    viewer.entities.add({
+        polyline: {
+            positions: rotaKoordinatlari,
+            width: 6,
+            material: Cesium.Color.fromBytes(239, 12, 249, 255),
+            clampToGround: false,
+            arcType: Cesium.ArcType.NONE
+        }
+    });
+
+    // 2. Ok mesh'leri (3D üçgen geometri — perspektiften bağımsız)
+    const okPrimitive = rotaOklariniOlustur(
+        rotaKoordinatlari,
+        toplamMetre / 15,    // Oklar arası: ~7 km
+        1500,                // Ok uzunluğu: 1.5 km
+        1200,                // Ok genişliği: 1.2 km
+        Cesium.Color.WHITE
+    );
+    viewer.scene.primitives.add(okPrimitive);
+
+    viewer.zoomTo(viewer.entities);
+    console.log(`✅ Arrow Mesh eklendi. Uzunluk: ${(toplamMetre / 1000).toFixed(1)} km, Ok sayısı: ${ornekSayisi(rotaKoordinatlari, toplamMetre / 15)}`);
+};
+
+function ornekSayisi(poz: Cesium.Cartesian3[], aralik: number): number {
+    let toplam = 0;
+    for (let i = 0; i < poz.length - 1; i++) toplam += Cesium.Cartesian3.distance(poz[i], poz[i + 1]);
+    return Math.floor(toplam / aralik);
+}
+
+
+//////////////////
+
+
+
+
+
+
 
 let cizimDinleyici: Cesium.ScreenSpaceEventHandler | undefined;
 
@@ -590,4 +927,6 @@ export const interaktifRotaCiziminiBaslat = (irtifa: number = 10000.0) => {
 
     }, Cesium.ScreenSpaceEventType.RIGHT_CLICK);
 };
+
+
 
