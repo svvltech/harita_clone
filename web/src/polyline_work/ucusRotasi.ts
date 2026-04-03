@@ -415,7 +415,7 @@ export const ucusRotasiEkleIlk_Border = (): void => {
     // İleride buraya zamana bağlı bir renk değişimi (yanıp sönme vb.) ekleyebilirsin.
     // Şimdilik shader kodundaki varsayılan mor/pembe tonunu sabit olarak döndürüyoruz.
     const çizgiRengi = new Cesium.CallbackProperty(() => {
-        return Cesium.Color.fromBytes(239, 12, 249, 255);
+        return Cesium.Color.WHITE;//fromBytes(239, 12, 249, 255);
     }, false); // false = değerin her karede sürekli hesaplanmasına gerek yok (sabit)
 
 
@@ -426,7 +426,7 @@ export const ucusRotasiEkleIlk_Border = (): void => {
 
     // 4. Uçuş rotası için 3D koordinatlar (Boylam, Enlem, İrtifa-Metre)
     // Uçak yörüngesini simüle etmek için giderek artan bir irtifa kullanıyoruz.
-    const kayma = 0.5;
+    const kayma = -0.9;
     const rotaKoordinatlari = Cesium.Cartesian3.fromDegreesArrayHeights([
         // 1. Nokta: Başlangıç
         29.000, 41.000 + kayma, 10000.0,  
