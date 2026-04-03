@@ -420,7 +420,7 @@ export const ucusRotasiEkleIlk_Border = (): void => {
 
 
     const borderColor = Cesium.Color.BLACK; // YENİ: Uniform'a varsayılan renk eklendi
-    const borderWidth = 0.0;  
+    const borderWidth = 0.08;  
     // 3. Custom materyalimizi örnekliyoruz
     const ucusRotasiMateryali = new ArrowEdgeMaterialProperty_Border_Ekle(okRengi, çizgiRengi,borderColor,borderWidth);
 
