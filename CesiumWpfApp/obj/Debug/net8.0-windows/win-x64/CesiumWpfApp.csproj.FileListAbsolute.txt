@@ -963,14 +963,6 @@ D:\sates\paralel_harita\Harita_Clone_Deneme\CesiumWpfApp\bin\Debug\net8.0-window
 D:\sates\paralel_harita\Harita_Clone_Deneme\CesiumWpfApp\bin\Debug\net8.0-windows\win-x64\wwwroot\SampleData\models\ShadowTester\Shadow_Transparent.glb
 D:\sates\paralel_harita\Harita_Clone_Deneme\CesiumWpfApp\bin\Debug\net8.0-windows\win-x64\wwwroot\SampleData\models\tb2\tb2_hr.glb
 D:\sates\paralel_harita\Harita_Clone_Deneme\CesiumWpfApp\bin\Debug\net8.0-windows\win-x64\wwwroot\SampleData\models\WoodTower\Wood_Tower.glb
-D:\sates\paralel_harita\Harita_Clone_Deneme\CesiumWpfApp\bin\Debug\net8.0-windows\win-x64\wwwroot\src_imageToGlbManager_ts.bundle.js
-D:\sates\paralel_harita\Harita_Clone_Deneme\CesiumWpfApp\bin\Debug\net8.0-windows\win-x64\wwwroot\src_imageToGlbManager_ts.bundle.js.map
-D:\sates\paralel_harita\Harita_Clone_Deneme\CesiumWpfApp\bin\Debug\net8.0-windows\win-x64\wwwroot\src_improvedPlaneYedek_ts.bundle.js
-D:\sates\paralel_harita\Harita_Clone_Deneme\CesiumWpfApp\bin\Debug\net8.0-windows\win-x64\wwwroot\src_improvedPlaneYedek_ts.bundle.js.map
-D:\sates\paralel_harita\Harita_Clone_Deneme\CesiumWpfApp\bin\Debug\net8.0-windows\win-x64\wwwroot\src_modelManager_ts.bundle.js
-D:\sates\paralel_harita\Harita_Clone_Deneme\CesiumWpfApp\bin\Debug\net8.0-windows\win-x64\wwwroot\src_modelManager_ts.bundle.js.map
-D:\sates\paralel_harita\Harita_Clone_Deneme\CesiumWpfApp\bin\Debug\net8.0-windows\win-x64\wwwroot\src_planeManager_ts.bundle.js
-D:\sates\paralel_harita\Harita_Clone_Deneme\CesiumWpfApp\bin\Debug\net8.0-windows\win-x64\wwwroot\src_planeManager_ts.bundle.js.map
 D:\sates\paralel_harita\Harita_Clone_Deneme\CesiumWpfApp\bin\Debug\net8.0-windows\win-x64\wwwroot\ThirdParty\basis_transcoder.wasm
 D:\sates\paralel_harita\Harita_Clone_Deneme\CesiumWpfApp\bin\Debug\net8.0-windows\win-x64\wwwroot\ThirdParty\draco_decoder.wasm
 D:\sates\paralel_harita\Harita_Clone_Deneme\CesiumWpfApp\bin\Debug\net8.0-windows\win-x64\wwwroot\ThirdParty\google-earth-dbroot-parser.js
@@ -1207,3 +1199,11 @@ D:\sates\paralel_harita\Harita_Clone_Deneme\CesiumWpfApp\obj\Debug\net8.0-window
 D:\sates\paralel_harita\Harita_Clone_Deneme\CesiumWpfApp\obj\Debug\net8.0-windows\win-x64\CesiumWpfApp.pdb
 D:\sates\paralel_harita\Harita_Clone_Deneme\CesiumWpfApp\obj\Debug\net8.0-windows\win-x64\CesiumWpfApp.genruntimeconfig.cache
 D:\sates\paralel_harita\Harita_Clone_Deneme\CesiumWpfApp\obj\Debug\net8.0-windows\win-x64\ref\CesiumWpfApp.dll
+D:\sates\paralel_harita\Harita_Clone_Deneme\CesiumWpfApp\bin\Debug\net8.0-windows\win-x64\wwwroot\src_imageToGlbManager_ts.bundle.js
+D:\sates\paralel_harita\Harita_Clone_Deneme\CesiumWpfApp\bin\Debug\net8.0-windows\win-x64\wwwroot\src_imageToGlbManager_ts.bundle.js.map
+D:\sates\paralel_harita\Harita_Clone_Deneme\CesiumWpfApp\bin\Debug\net8.0-windows\win-x64\wwwroot\src_improvedPlaneYedek_ts.bundle.js
+D:\sates\paralel_harita\Harita_Clone_Deneme\CesiumWpfApp\bin\Debug\net8.0-windows\win-x64\wwwroot\src_improvedPlaneYedek_ts.bundle.js.map
+D:\sates\paralel_harita\Harita_Clone_Deneme\CesiumWpfApp\bin\Debug\net8.0-windows\win-x64\wwwroot\src_modelManager_ts.bundle.js
+D:\sates\paralel_harita\Harita_Clone_Deneme\CesiumWpfApp\bin\Debug\net8.0-windows\win-x64\wwwroot\src_modelManager_ts.bundle.js.map
+D:\sates\paralel_harita\Harita_Clone_Deneme\CesiumWpfApp\bin\Debug\net8.0-windows\win-x64\wwwroot\src_planeManager_ts.bundle.js
+D:\sates\paralel_harita\Harita_Clone_Deneme\CesiumWpfApp\bin\Debug\net8.0-windows\win-x64\wwwroot\src_planeManager_ts.bundle.js.map

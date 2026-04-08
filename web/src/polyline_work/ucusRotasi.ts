@@ -1,5 +1,5 @@
 import * as Cesium from 'cesium';
-import { ArrowEdgeMaterialProperty, ArrowEdgeMaterialProperty1,ArrowEdgeMaterialProperty2,ArrowEdgeMaterialProperty2duzgun_1, ArrowEdgeMaterialProperty2duzgun_2, ArrowEdgeMaterialProperty2duzgun_3, ArrowEdgeMaterialProperty2duzgun_4, ArrowEdgeMaterialProperty2son, ArrowEdgeMaterialProperty_Border_Ekle, ArrowEdgeMaterialProperty_Kusursuz, ArrowEdgeMaterialPropertyIlk, ArrowEdgeMaterialPropertyIlk_Border, ArrowEdgeMaterialPropertySabit } from './shaders';
+import { ArrowEdgeMaterialProperty, ArrowEdgeMaterialProperty1,ArrowEdgeMaterialProperty2,ArrowEdgeMaterialProperty2duzgun_1, ArrowEdgeMaterialProperty2duzgun_2, ArrowEdgeMaterialProperty2duzgun_3, ArrowEdgeMaterialProperty2duzgun_4, ArrowEdgeMaterialProperty2son, ArrowEdgeMaterialProperty_anchor, ArrowEdgeMaterialProperty_Border_Ekle, ArrowEdgeMaterialProperty_Border_Ekle_v2, ArrowEdgeMaterialProperty_Border_Ekle_v3, ArrowEdgeMaterialProperty_Kusursuz, ArrowEdgeMaterialPropertyIlk, ArrowEdgeMaterialPropertyIlk_Border, ArrowEdgeMaterialPropertySabit } from './shaders';
 import { viewer } from "../harita";
 
 export const ucusRotasiEkle1 = (): void => {
@@ -85,6 +85,7 @@ export const ucusRotasiEkle2 = (): void => {
         return Cesium.Color.fromBytes(239, 12, 249, 255);
     }, false);
 
+    
     const materyal = new ArrowEdgeMaterialProperty2duzgun_2(
         Cesium.Color.WHITE,
         dashColor,
@@ -108,6 +109,51 @@ export const ucusRotasiEkle2 = (): void => {
     viewer.zoomTo(viewer.entities);
 };
 
+export const ucusRotasiEkle2_2 = (): void => {
+    if (!viewer) return;
+
+    const kayma = 0.9;
+    
+    // Eşit uzunlukta 3 parçalı rota (Her parça ~0.5 derece)
+    const rotaKoordinatlari = Cesium.Cartesian3.fromDegreesArrayHeights([
+        29.000, 41.000 + kayma, 10000.0,  
+        29.500, 41.000 + kayma, 10000.0,  
+        29.750, 40.567 + kayma, 10000.0,  
+        30.250, 40.567 + kayma, 10000.0   
+    ]);
+
+    // Toplam uzunluk hesabı
+    let toplamMetre = 0;
+    for (let i = 0; i < rotaKoordinatlari.length - 1; i++) {
+        toplamMetre += Cesium.Cartesian3.distance(rotaKoordinatlari[i], rotaKoordinatlari[i + 1]);
+    }
+
+    const dashColor = new Cesium.CallbackProperty(() => {
+        return Cesium.Color.fromBytes(239, 12, 249, 255);
+    }, false);
+
+
+    const materyal = new ArrowEdgeMaterialProperty2duzgun_1(
+        Cesium.Color.WHITE,
+        dashColor,
+        viewer.scene,
+        toplamMetre,
+        115.0, // dashLength
+        35.0   // arrowLength
+    ); 
+
+    viewer.entities.add({
+        polyline: {
+            positions: rotaKoordinatlari,
+            width: 14,
+            material: materyal,
+            clampToGround: false,
+            arcType: Cesium.ArcType.NONE // Çizgilerin bükülmesini engellemek için kritik
+        }
+    });
+
+    viewer.zoomTo(viewer.entities);
+};
 export const ucusRotasiEkle_corridor = (): void => {
     if (!viewer) return;
 
@@ -420,9 +466,9 @@ export const ucusRotasiEkleIlk_Border = (): void => {
 
 
     const borderColor = Cesium.Color.BLACK; // YENİ: Uniform'a varsayılan renk eklendi
-    const borderWidth = 0.08;  
+    const borderWidth = 2.0;  
     // 3. Custom materyalimizi örnekliyoruz
-    const ucusRotasiMateryali = new ArrowEdgeMaterialProperty_Border_Ekle(okRengi, çizgiRengi,borderColor,borderWidth);
+    const ucusRotasiMateryali = new ArrowEdgeMaterialProperty_Border_Ekle_v3(okRengi, çizgiRengi,borderColor,borderWidth);
 
     // 4. Uçuş rotası için 3D koordinatlar (Boylam, Enlem, İrtifa-Metre)
     // Uçak yörüngesini simüle etmek için giderek artan bir irtifa kullanıyoruz.
@@ -450,7 +496,7 @@ export const ucusRotasiEkleIlk_Border = (): void => {
             positions: rotaKoordinatlari,
             // Okların içerideki detaylarının (V şekli, gövde vb.) net görünmesi için 
             // çizgi kalınlığını biraz yüksek tutmak iyi bir pratiktir.
-            width: 30, 
+            width: 50, 
             material: ucusRotasiMateryali,
             // Uçuş rotası olduğu için arazinin üzerine yapışmasın, havada kalsın:
             clampToGround: false 
@@ -520,6 +566,60 @@ export const ucusRotasiEkle = (): void => {
   }
 };
 
+export const ucusRotasiEkle_anchor = (): void => {
+  try {
+    if (!viewer) return;
+
+    // 2. Materyal parametrelerini hazırlıyoruz
+    const okRengi = Cesium.Color.PURPLE;
+
+    // dashColor bir CallbackProperty bekliyor. 
+    // İleride buraya zamana bağlı bir renk değişimi (yanıp sönme vb.) ekleyebilirsin.
+    // Şimdilik shader kodundaki varsayılan mor/pembe tonunu sabit olarak döndürüyoruz.
+    const çizgiRengi = new Cesium.CallbackProperty(() => {
+        return Cesium.Color.fromBytes(239, 12, 249, 255);
+    }, false); // false = değerin her karede sürekli hesaplanmasına gerek yok (sabit)
+
+    // 3. Custom materyalimizi örnekliyoruz
+
+    // 4. Uçuş rotası için 3D koordinatlar (Boylam, Enlem, İrtifa-Metre)
+    // Uçak yörüngesini simüle etmek için giderek artan bir irtifa kullanıyoruz.
+    const kayma = 0.3;
+    const rotaKoordinatlari = Cesium.Cartesian3.fromDegreesArrayHeights([
+        28.8144, 40.9769 + kayma, 1000.0,  // Kalkış sonrası tırmanış
+        29.0000, 41.0000 + kayma, 3500.0,  // Ara irtifa
+        29.5000, 40.8000 + kayma, 8000.0,  // Seyir irtifasına yaklaşım
+        30.0000, 40.5000 + kayma, 10000.0  // Seyir
+    ]);
+
+    const ucusRotasiMateryali = new ArrowEdgeMaterialProperty_anchor(okRengi, çizgiRengi, viewer.scene, rotaKoordinatlari[0]);
+
+    // 5. Entity'i (Çizgiyi) haritaya ekliyoruz
+    const ucusRotasi = viewer.entities.add({
+        name: 'Örnek Uçuş Rotası',
+        polyline: {
+            positions: rotaKoordinatlari,
+            // Okların içerideki detaylarının (V şekli, gövde vb.) net görünmesi için 
+            // çizgi kalınlığını biraz yüksek tutmak iyi bir pratiktir.
+            width: 12, 
+            material: ucusRotasiMateryali,
+            // Uçuş rotası olduğu için arazinin üzerine yapışmasın, havada kalsın:
+            clampToGround: false 
+        }
+        
+    });
+
+    viewer.zoomTo(ucusRotasi);
+
+    console.log("ucusRotasi eklendi:", ucusRotasi);
+
+
+  } catch (error) {
+    console.error("ucusRotasi hata:", error);
+  }
+};
+
+
 export const ucusRotasiEkle2_kusursuz = (): void => {
 if (!viewer) return;
 
@@ -565,9 +665,7 @@ if (!viewer) return;
         const okMateryali = new ArrowEdgeMaterialProperty_Kusursuz(
             Cesium.Color.WHITE,
             cizgiRengi, // Çizgi kısmını ŞEFFAF yapıyoruz ki alttaki mor zemin görünsün!
-            viewer.scene,
             segmentMesafe, // Segmentin gerçek dünya uzunluğu
-            35.0   // Ok her açıdan 35 pixel kalacak
         );
 
         // Düz parçayı haritaya ekle
@@ -787,11 +885,6 @@ function ornekSayisi(poz: Cesium.Cartesian3[], aralik: number): number {
 
 
 //////////////////
-
-
-
-
-
 
 
 let cizimDinleyici: Cesium.ScreenSpaceEventHandler | undefined;
