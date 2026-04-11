@@ -1,5 +1,5 @@
 import * as Cesium from 'cesium';
-import { ArrowEdgeMaterialProperty, ArrowEdgeMaterialProperty1,ArrowEdgeMaterialProperty2,ArrowEdgeMaterialProperty2duzgun_1, ArrowEdgeMaterialProperty2duzgun_2, ArrowEdgeMaterialProperty2duzgun_3, ArrowEdgeMaterialProperty2duzgun_4, ArrowEdgeMaterialProperty2son, ArrowEdgeMaterialProperty_anchor, ArrowEdgeMaterialProperty_Border_Ekle, ArrowEdgeMaterialProperty_Border_Ekle_v2, ArrowEdgeMaterialProperty_Border_Ekle_v3, ArrowEdgeMaterialProperty_Kusursuz, ArrowEdgeMaterialPropertyIlk, ArrowEdgeMaterialPropertyIlk_Border, ArrowEdgeMaterialPropertySabit } from './shaders';
+import { ArrowEdgeMaterialProperty, ArrowEdgeMaterialProperty1,ArrowEdgeMaterialProperty2,ArrowEdgeMaterialProperty2duzgun_1, ArrowEdgeMaterialProperty2duzgun_2, ArrowEdgeMaterialProperty2duzgun_3, ArrowEdgeMaterialProperty2duzgun_4, ArrowEdgeMaterialProperty2son, ArrowEdgeMaterialProperty_anchor, ArrowEdgeMaterialProperty_Border_Ekle, ArrowEdgeMaterialProperty_Border_Ekle_v2, ArrowEdgeMaterialProperty_Border_Ekle_v3, ArrowEdgeMaterialProperty_glsl, ArrowEdgeMaterialProperty_Kusursuz, ArrowEdgeMaterialPropertyIlk, ArrowEdgeMaterialPropertyIlk_Border, ArrowEdgeMaterialPropertySabit, ChevronArrowEdgeMaterialProperty, ChevronArrowEdgeMaterialProperty_sandwichLine } from './shaders';
 import { viewer } from "../harita";
 
 export const ucusRotasiEkle1 = (): void => {
@@ -518,7 +518,7 @@ export const ucusRotasiEkle = (): void => {
     if (!viewer) return;
 
     // 2. Materyal parametrelerini hazırlıyoruz
-    const okRengi = Cesium.Color.PURPLE;
+    const okRengi = Cesium.Color.WHITE;
 
     // dashColor bir CallbackProperty bekliyor. 
     // İleride buraya zamana bağlı bir renk değişimi (yanıp sönme vb.) ekleyebilirsin.
@@ -528,7 +528,8 @@ export const ucusRotasiEkle = (): void => {
     }, false); // false = değerin her karede sürekli hesaplanmasına gerek yok (sabit)
 
     // 3. Custom materyalimizi örnekliyoruz
-    const ucusRotasiMateryali = new ArrowEdgeMaterialProperty(okRengi, çizgiRengi);
+    //const ucusRotasiMateryali = new ArrowEdgeMaterialProperty_glsl(okRengi, çizgiRengi);
+    const ucusRotasiMateryali = new ChevronArrowEdgeMaterialProperty_sandwichLine(okRengi, çizgiRengi);
 
     // 4. Uçuş rotası için 3D koordinatlar (Boylam, Enlem, İrtifa-Metre)
     // Uçak yörüngesini simüle etmek için giderek artan bir irtifa kullanıyoruz.
@@ -621,66 +622,66 @@ export const ucusRotasiEkle_anchor = (): void => {
 
 
 export const ucusRotasiEkle2_kusursuz = (): void => {
-if (!viewer) return;
+    if (!viewer) return;
 
     const kayma = 0.1;
     
-    // Rota Koordinatları
-    const rotaKoordinatlari = Cesium.Cartesian3.fromDegreesArrayHeights([
+    // 1. ZEMİN ROTASI (10.000 Metre)
+    const zeminKoordinatlari = Cesium.Cartesian3.fromDegreesArrayHeights([
         29.000, 41.000 + kayma, 10000.0,  
         29.500, 41.000 + kayma, 10000.0,  
         29.750, 40.567 + kayma, 10000.0,  
         30.250, 40.567 + kayma, 10000.0   
     ]);
 
-    // 1. ZEMİN ROTASI (Kesintisiz Ana Hat)
-    // Bu sadece yolu gösteren mor çizgimiz. Ok içermiyor. 
-    // Virajlarda asla yırtılmaz, bükülmez, taktiksel harita için bir kılavuz görevi görür. Havada 10k'da uçar.
+    // 2. OK ROTASI (10.015 Metre) 
+    // BENİM HATAM BURADAYDI! Okları 15 metre yukarı kaldırmak zorundayız, 
+    // yoksa mor zemin çizgisi okları (Z-Fighting nedeniyle) yutar ve görünmez yapar.
+    const okKoordinatlari = Cesium.Cartesian3.fromDegreesArrayHeights([
+        29.000, 41.000 + kayma, 10015.0,  
+        29.500, 41.000 + kayma, 10015.0,  
+        29.750, 40.567 + kayma, 10015.0,  
+        30.250, 40.567 + kayma, 10015.0   
+    ]);
+
+    // --- Zemin Çizgisi ---
     viewer.entities.add({
         name: 'Ana Rota Zemini',
         polyline: {
-            positions: rotaKoordinatlari,
-            width: 3, // İnce bir kılavuz çizgi
-            material: Cesium.Color.fromBytes(239, 12, 249, 255) // Mor rengin
+            positions: zeminKoordinatlari, // ZEMİN koordinatları kullanılıyor
+            width: 3, 
+            material: Cesium.Color.fromBytes(239, 12, 249, 255) 
         }
     });
 
     const cizgiRengi = new Cesium.CallbackProperty(() => {
-        return Cesium.Color.TRANSPARENT
-    }, false); // false = değerin her karede sürekli hesaplanmasına gerek yok (sabit)
+        return Cesium.Color.TRANSPARENT;
+    }, false); 
 
-
-    // 2. OK KATMANI (Nihai Kusursuz Çözüm)
-    // Her bir düz parça için ayrı bir Polyline ve ayrı bir Materyal oluşturuyoruz.
-    // Bu parçalı mimari virajlardaki yırtılma ve deformasyon sorununu kökünden çözer.
-    for (let i = 0; i < rotaKoordinatlari.length - 1; i++) {
-        const baslangic = rotaKoordinatlari[i];
-        const bitis = rotaKoordinatlari[i + 1];
+    // --- Ok Katmanı ---
+    for (let i = 0; i < okKoordinatlari.length - 1; i++) {
+        const baslangic = okKoordinatlari[i]; // OK koordinatları kullanılıyor
+        const bitis = okKoordinatlari[i + 1];
         
-        // Sadece bu kısa parçanın DÜNYADAKİ gerçek metre uzunluğu
-        // st.s ile kusursuz örtüşmesi için bu değeri Shader'a göndermeliyiz.
         const segmentMesafe = Cesium.Cartesian3.distance(baslangic, bitis);
 
-        // Materyali sadece bu düz parça için başlatıyoruz
         const okMateryali = new ArrowEdgeMaterialProperty_Kusursuz(
             Cesium.Color.WHITE,
-            cizgiRengi, // Çizgi kısmını ŞEFFAF yapıyoruz ki alttaki mor zemin görünsün!
-            segmentMesafe, // Segmentin gerçek dünya uzunluğu
+            cizgiRengi, 
+            segmentMesafe
         );
 
-        // Düz parçayı haritaya ekle
         viewer.entities.add({
             name: `Ok Segmenti ${i+1}`,
             polyline: {
                 positions: [baslangic, bitis],
-                width: 7, // Okların zeminden daha kalın/belirgin olması için
+                width: 7, 
                 material: okMateryali
             }
         });
     }
 
     viewer.zoomTo(viewer.entities);
- 
 };
 
 //////////////// 010426

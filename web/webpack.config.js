@@ -47,7 +47,13 @@ module.exports = {
             {
                 test: /\.(png|gif|jpg|jpeg|svg|xml|json)$/,
                 type: 'asset/resource'
+            },
+            // YENI EKLENEN KURAL :
+            {
+                test: /\.glsl$/,
+                use: 'ts-shader-loader'
             }
+
         ],
         unknownContextCritical: false
     },

@@ -1,4 +1,64 @@
 import * as Cesium from "cesium";
+import arrowShaderSource from './ArrowMaterial.glsl';
+
+export class ArrowEdgeMaterialProperty_glsl implements Cesium.MaterialProperty {
+    private _arrowColor: Cesium.Property;
+    private _dashColor: Cesium.Property;
+    private _definitionChanged: Cesium.Event;
+
+    constructor(
+        arrowColor: Cesium.Color,
+        dashColor: Cesium.CallbackProperty
+    ) {
+        this._arrowColor = new Cesium.ConstantProperty(arrowColor);
+        this._dashColor = dashColor;
+        this._definitionChanged = new Cesium.Event();
+
+        if (!(Cesium.Material as any)._materialCache._materials["ArrowEdgeMaterialProperty_glsl"]) {
+            (Cesium.Material as any)._materialCache.addMaterial("ArrowEdgeMaterialProperty_glsl", {
+                fabric: {
+                    type: "ArrowEdgeMaterialProperty_glsl",
+                    uniforms: {
+                        arrowColor: Cesium.Color.WHITE,
+                        dashColor: Cesium.Color.fromBytes(239, 12, 249, 255),
+                        dashLength: 48.0,
+                        arrowLength: 16.0,
+                        minV: 0.40, // Alt sınır
+                        maxV: 0.60  // Üst sınır
+                    },
+                    source: arrowShaderSource
+                },
+                translucent: () => true
+            });
+        }
+    }
+
+    get isConstant(): boolean {
+        const ac = (this._arrowColor as any)?.isConstant ?? true;
+        const dc = (this._dashColor as any)?.isConstant ?? true;
+        return ac && dc;
+    }
+
+    get definitionChanged(): Cesium.Event { return this._definitionChanged; }
+    getType(_time: Cesium.JulianDate): string { return "ArrowEdgeMaterialProperty_glsl"; }
+
+    getValue(time: Cesium.JulianDate, result?: any): any {
+        if (!result) result = {};
+        result.arrowColor = this._arrowColor.getValue(time);
+        result.dashColor = this._dashColor.getValue(time);
+        return result;
+    }
+
+    equals(other: Cesium.MaterialProperty): boolean {
+        return (
+            other instanceof ArrowEdgeMaterialProperty_glsl &&
+            (other as any)._arrowColor?.equals?.(this._arrowColor) === true &&
+            (other as any)._dashColor?.equals?.(this._dashColor) === true
+        );
+    }
+}
+
+
 
 export class ArrowEdgeMaterialProperty1 implements Cesium.MaterialProperty {
     private _arrowColor: Cesium.Property;
@@ -2931,6 +2991,7 @@ export class ArrowEdgeMaterialProperty implements Cesium.MaterialProperty {
     }
 }
 
+
 export class ArrowEdgeMaterialProperty_anchor implements Cesium.MaterialProperty {
     private _arrowColor: Cesium.Property;
     private _dashColor: Cesium.Property;
@@ -3086,7 +3147,7 @@ export class ArrowEdgeMaterialProperty_anchor implements Cesium.MaterialProperty
         return this === other;
     }
 }
-/*
+
 
 export class ChevronArrowEdgeMaterialProperty implements Cesium.MaterialProperty {
     private _arrowColor: Cesium.Property;
@@ -3101,10 +3162,10 @@ export class ChevronArrowEdgeMaterialProperty implements Cesium.MaterialProperty
         this._dashColor = dashColor;
         this._definitionChanged = new Cesium.Event();
 
-        if (!(Cesium.Material as any)._materialCache._materials["ChevronArrowMaterialPropertyVClipBackgroundOnly"]) {
-            (Cesium.Material as any)._materialCache.addMaterial("ChevronArrowMaterialPropertyVClipBackgroundOnly", {
+        if (!(Cesium.Material as any)._materialCache._materials["ChevronArrowEdgeMaterialProperty"]) {
+            (Cesium.Material as any)._materialCache.addMaterial("ChevronArrowEdgeMaterialProperty", {
                 fabric: {
-                    type: "ChevronArrowMaterialPropertyVClipBackgroundOnly",
+                    type: "ChevronArrowEdgeMaterialProperty",
                     uniforms: {
                         arrowColor: Cesium.Color.WHITE,
                         dashColor: Cesium.Color.fromBytes(239, 12, 249, 255),
@@ -3242,7 +3303,7 @@ export class ChevronArrowEdgeMaterialProperty implements Cesium.MaterialProperty
     }
 
     get definitionChanged(): Cesium.Event { return this._definitionChanged; }
-    getType(_time: Cesium.JulianDate): string { return "ChevronArrowMaterialPropertyVClipBackgroundOnly"; }
+    getType(_time: Cesium.JulianDate): string { return "ChevronArrowEdgeMaterialProperty"; }
 
     getValue(time: Cesium.JulianDate, result?: any): any {
         if (!result) result = {};
@@ -3253,7 +3314,200 @@ export class ChevronArrowEdgeMaterialProperty implements Cesium.MaterialProperty
 
     equals(other: Cesium.MaterialProperty): boolean {
         return (
-            other instanceof ChevronArrowMaterialProperty &&
+            other instanceof ChevronArrowEdgeMaterialProperty &&
+            (other as any)._arrowColor?.equals?.(this._arrowColor) === true &&
+            (other as any)._dashColor?.equals?.(this._dashColor) === true
+        );
+    }
+}
+
+export class ChevronArrowEdgeMaterialProperty_sandwichLine implements Cesium.MaterialProperty {
+    private _arrowColor: Cesium.Property;
+    private _dashColor: Cesium.Property;
+    private _definitionChanged: Cesium.Event;
+
+    constructor(
+        arrowColor: Cesium.Color,
+        dashColor: Cesium.CallbackProperty
+    ) {
+        this._arrowColor = new Cesium.ConstantProperty(arrowColor);
+        this._dashColor = dashColor;
+        this._definitionChanged = new Cesium.Event();
+
+        if (!(Cesium.Material as any)._materialCache._materials["ChevronArrowEdgeMaterialProperty"]) {
+            (Cesium.Material as any)._materialCache.addMaterial("ChevronArrowEdgeMaterialProperty", {
+                fabric: {
+                    type: "ChevronArrowEdgeMaterialProperty",
+                    uniforms: {
+                        arrowColor: Cesium.Color.WHITE,
+                        dashColor: Cesium.Color.fromBytes(239, 12, 249, 255),
+                        dashLength: 48.0,
+                        arrowLength: 12.0,
+                        minV: 0.30, // Alt sınır
+                        maxV: 0.70  // Üst sınır
+                    },
+                    source: `
+                        uniform vec4 arrowColor;
+                        uniform vec4 dashColor;
+                        uniform float dashLength;
+                        uniform float arrowLength;
+                        uniform float minV;
+                        uniform float maxV;
+                        in float v_polylineAngle;
+
+                        mat2 rotate(float rad) {
+                            float c = cos(rad);
+                            float s = sin(rad);
+                            return mat2(c, s, -s, c);
+                        }
+
+                        float modp(float x, float len) {
+                            float m = mod(x, len);
+                            return m < 0.0 ? m + len : m;
+                        }
+
+                        bool pointInParallelogram(vec2 p, vec2 topStart, vec2 bottomStart, vec2 topEnd) {
+                            vec2 v1 = bottomStart - topStart;
+                            vec2 v2 = topEnd - topStart;
+                            vec2 vP = p - topStart;
+
+                            float dot00 = dot(v1, v1);
+                            float dot01 = dot(v1, v2);
+                            float dot11 = dot(v2, v2);
+                            float dotP0 = dot(vP, v1);
+                            float dotP1 = dot(vP, v2);
+
+                            float denom = dot00 * dot11 - dot01 * dot01;
+                            if (denom == 0.0) return false;
+                            float u = (dot11 * dotP0 - dot01 * dotP1) / denom;
+                            float v = (dot00 * dotP1 - dot01 * dotP0) / denom;
+
+                            return (u > 0.0) && (u < 1.0) && (v > 0.0) && (v < 1.0);
+                        }
+
+                        float chevronMask(float u, float v) {
+                            float totalThickness = 0.6;
+                            float edgeThickness = 0.1;
+                            vec2 p = vec2(u, v);
+
+                            vec2 leftOuterTopStart = vec2(0.0, 1.0);
+                            vec2 leftOuterTopEnd = vec2(totalThickness, 1.0);
+                            vec2 leftOuterBottomStart = vec2(1.0 - totalThickness, 0.5);
+
+                            vec2 rightOuterTopStart = vec2(1.0 - totalThickness, 0.5);
+                            vec2 rightOuterTopEnd = vec2(1.0, 0.5);
+                            vec2 rightOuterBottomStart = vec2(0.0, 0.0);
+
+                            vec2 leftInnerTopStart = vec2(edgeThickness, 1.0 - edgeThickness);
+                            vec2 leftInnerTopEnd = vec2(totalThickness - edgeThickness, 1.0 - edgeThickness);
+                            vec2 leftInnerBottomStart = vec2(1.0 - totalThickness + edgeThickness, 0.5);
+
+                            vec2 rightInnerTopStart = vec2(1.0 - totalThickness + edgeThickness, 0.5);
+                            vec2 rightInnerTopEnd = vec2(1.0 - edgeThickness, 0.5);
+                            vec2 rightInnerBottomStart = vec2(edgeThickness, edgeThickness);
+
+                            bool inLeftOuter = pointInParallelogram(p, leftOuterTopStart, leftOuterBottomStart, leftOuterTopEnd);
+                            bool inRightOuter = pointInParallelogram(p, rightOuterTopStart, rightOuterBottomStart, rightOuterTopEnd);
+
+                            bool inLeftInner = pointInParallelogram(p, leftInnerTopStart, leftInnerBottomStart, leftInnerTopEnd);
+                            bool inRightInner = pointInParallelogram(p, rightInnerTopStart, rightInnerBottomStart, rightInnerTopEnd);
+
+                            if ((inLeftOuter || inRightOuter) && !(inLeftInner || inRightInner)) {
+                                return 2.0; // Sadece dışta
+                            }
+                            if (inLeftInner || inRightInner) {
+                                return 1.0; // İçte
+                            }
+                            return 0.0; // Hiçbirinde değil
+                        }
+
+                  czm_material czm_getMaterial(czm_materialInput materialInput) {
+    czm_material material = czm_getDefaultMaterial(materialInput);
+    vec2 st = materialInput.st;
+
+    vec2 pos = rotate(v_polylineAngle) * gl_FragCoord.xy;
+    float pixelDashLength  = max(dashLength  * czm_pixelRatio, 1.0);
+    float pixelArrowLength = max(arrowLength * czm_pixelRatio, 1.0);
+    float pixelSegmentLength = pixelDashLength + pixelArrowLength;
+
+    float xInSeg = modp(pos.x, pixelSegmentLength);
+
+    float inArrow = step(pixelDashLength, xInSeg);
+    float u = clamp((xInSeg - pixelDashLength) / pixelArrowLength, 0.0, 1.0);
+    float v = st.t;
+    float mask = inArrow * chevronMask(u, v);
+
+    vec4 dashCol = dashColor;     // Gelen yeşil renk
+    vec4 arrowCol = arrowColor;   // Ok rengi
+    vec4 blackCol = vec4(0.0, 0.0, 0.0, 1.0);
+    vec4 outColor;
+
+    // --- Şerit Hesaplama (v: 0.0 ile 1.0 arası) ---
+    // minV: 0.40, maxV: 0.60 varsayalım (Toplam kalınlık 0.20)
+    float midV = (minV + maxV) * 0.5;
+    float stripeThickness = (maxV - minV) * 0.2; // Siyah şeridin toplam kalınlığın %20'si olması için
+
+    // Şerit sınırları
+    bool isUpperGreen = (v >= minV && v < (midV - stripeThickness * 0.5));
+    bool isMiddleBlack = (v >= (midV - stripeThickness * 0.5) && v <= (midV + stripeThickness * 0.5));
+    bool isLowerGreen = (v > (midV + stripeThickness * 0.5) && v <= maxV);
+    
+    // Genel arka plan (dash) alanı belirleme
+    if (isMiddleBlack) {
+        outColor = blackCol;
+    } else if (isUpperGreen || isLowerGreen) {
+        outColor = dashCol;
+    } else {
+        outColor = vec4(0.0); // Tamamen şeffaf dış alan
+    }
+
+    // --- Maskeleme ve Ok Katmanı ---
+    if (mask == 1.0) {
+        outColor = arrowCol; // Okun kendisi
+    } else if (mask == 2.0) {
+        outColor = blackCol; // Okun siyah kenarlığı
+    }
+
+    // Alpha Kontrolü: Eğer ok bölgesinde değilsek ve v-aralığı dışındaysak temizle
+    if (mask == 0.0) {
+        float vClip = step(minV, v) * step(v, maxV);
+        outColor.a *= vClip;
+    }
+
+    // Antialias ve Çıktı
+    outColor = czm_antialias(vec4(0.0), outColor, outColor, min(st.t, 1.0 - st.t));
+    outColor = czm_gammaCorrect(outColor);
+
+    material.diffuse = outColor.rgb;
+    material.alpha   = outColor.a;
+    return material;
+}
+                    `
+                },
+                translucent: () => true
+            });
+        }
+    }
+
+    get isConstant(): boolean {
+        const ac = (this._arrowColor as any)?.isConstant ?? true;
+        const dc = (this._dashColor as any)?.isConstant ?? true;
+        return ac && dc;
+    }
+
+    get definitionChanged(): Cesium.Event { return this._definitionChanged; }
+    getType(_time: Cesium.JulianDate): string { return "ChevronArrowEdgeMaterialProperty"; }
+
+    getValue(time: Cesium.JulianDate, result?: any): any {
+        if (!result) result = {};
+        result.arrowColor = this._arrowColor.getValue(time);
+        result.dashColor = this._dashColor.getValue(time);
+        return result;
+    }
+
+    equals(other: Cesium.MaterialProperty): boolean {
+        return (
+            other instanceof ChevronArrowEdgeMaterialProperty &&
             (other as any)._arrowColor?.equals?.(this._arrowColor) === true &&
             (other as any)._dashColor?.equals?.(this._dashColor) === true
         );
@@ -3464,7 +3718,7 @@ export class ChevronDoubleArrowEdgeMaterialProperty implements Cesium.MaterialPr
         );
     }
 }
-*/
+
 
 // ============================================================================
 // HİBRİT YAKLAŞIM: Dünya-Çakılı Pozisyon + Ekran-Uzayı Şekil Boyutlandırma

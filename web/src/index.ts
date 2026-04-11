@@ -506,10 +506,10 @@ async function initializeCesium() {
             //await ucusRotasiEkle1();
             //await ucusRotasiEkle2();
             //await ucusRotasiEkle2_2();
-            //await ucusRotasiEkle();
+            await ucusRotasiEkle();
             //await ucusRotasiEkle_corridor();
             //await ucusRotasiEkle_sabit();
-            await ucusRotasiEkle2_kusursuz();
+            //await ucusRotasiEkle2_kusursuz();
             //ucusRotasiEkle_arrowMesh();
             //await ucusRotasiEkleIlk_Border();
         } catch (e) { console.warn('ucusRotasiEkle yüklenemedi:', e); }

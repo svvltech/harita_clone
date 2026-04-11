@@ -218,3 +218,129 @@ czm_material czm_getMaterial(czm_materialInput materialInput) {
 }
 
 */
+
+// 0804
+/*
+czm_material czm_getMaterial(czm_materialInput materialInput) {
+    czm_material material = czm_getDefaultMaterial(materialInput);
+    material.normal = vec3(0.0, 0.0, 1.0);
+    material.alpha = 1.0;
+    
+    vec2 st = materialInput.st;
+    
+    float isInside = 0.0;
+    float isArrow = 0.0;       
+    float isArrowInner = 0.0;  
+
+    float count = floor(arrowCount);
+    float spacing = 1.0 / max(count, 1.0);
+
+    // 1 Piksellik Yumuşatma Fırçaları (Anti-Aliasing Sırrı Burada)
+    float fwS = max(fwidth(st.s), 1e-5); 
+    float fwT = max(fwidth(st.t), 1e-5); 
+
+    float idealBorderS = borderWidth * fwS; 
+    float idealBorderT = borderWidth * fwT; 
+
+    // Kamera uzaklaştığında border'ın oku yutmasını engelleyen fren
+    float borderS = min(idealBorderS, 0.015); 
+    float borderT = min(idealBorderT, 0.05); 
+
+    float arrowWidth = 0.07;
+    float arrowBody = 0.03; 
+    float arrowHalfHeight = 0.5 * 1.5; 
+    float bodyThickness = 0.2;
+
+    float innerCeiling = 0.5 - borderT;
+    float innerBodyY = max(bodyThickness - borderT, 0.0);
+
+    for(int i = 0; i < 8; i++){
+        if(float(i) >= count) break;
+        float start = float(i) * spacing;
+        float bodyEnd = start + arrowBody;
+        float end = bodyEnd + arrowWidth;
+
+        // ==========================================
+        // A) GÖVDE (BODY)
+        // ==========================================
+        // Sınırları biraz esnetiyoruz ki smoothstep (yumuşatma) için pay kalsın
+        if (st.s >= start - fwS && st.s <= bodyEnd + fwS) {
+            
+            // Dış Maske Y Ekseni Yumuşatması
+            float outerAlphaY = 1.0 - smoothstep(bodyThickness - fwT, bodyThickness + fwT, abs(st.t - 0.5));
+            isArrow = max(isArrow, outerAlphaY);
+            
+            // İç Maske (Beyaz) Y Ekseni Yumuşatması
+            float limitBodyY = min(innerBodyY, innerCeiling);
+            float innerAlphaY = 1.0 - smoothstep(limitBodyY - fwT, limitBodyY + fwT, abs(st.t - 0.5));
+            
+            // Sol Kulakçık arkasındaki başlangıç boşluğu için X ekseni Yumuşatması
+            float innerBodyStartX = start + borderS;
+            float innerAlphaX = smoothstep(innerBodyStartX - fwS, innerBodyStartX + fwS, st.s);
+            
+            isArrowInner = max(isArrowInner, innerAlphaY * innerAlphaX);
+        }
+
+        // ==========================================
+        // B) ÜÇGEN (HEAD)
+        // ==========================================
+        if (st.s >= bodyEnd - fwS && st.s <= end + fwS) {
+            float dx = (st.s - bodyEnd) / (end - bodyEnd);
+            float base = 0.785 - dx;
+            float shaped = pow(max(base, 0.0), 1.3);
+            float taperFactor = mix(1.0, 0.9, clamp(dx, 0.0, 1.0));
+            
+            float maxY = arrowHalfHeight * shaped * taperFactor;
+            float actualEnd = bodyEnd + (0.785 * arrowWidth);
+
+            // Dış Maske Kavis Yumuşatması
+            float outerAlphaY = 1.0 - smoothstep(maxY - fwT, maxY + fwT, abs(st.t - 0.5));
+            // Uç noktasının yumuşak bitişi
+            float outerAlphaX = 1.0 - smoothstep(actualEnd - fwS, actualEnd + fwS, st.s);
+            isArrow = max(isArrow, outerAlphaY * outerAlphaX);
+            
+            // İç Maske Kavis Yumuşatması
+            float innerMaxY = maxY - (borderT * 1.5); 
+            float limitY = min(innerMaxY, innerCeiling);
+            
+            float isFlap = step(innerBodyY, abs(st.t - 0.5)); 
+            float innerHeadStartX = bodyEnd + (isFlap * borderS);
+            
+            float innerAlphaY = 1.0 - smoothstep(limitY - fwT, limitY + fwT, abs(st.t - 0.5));
+            float innerAlphaX = smoothstep(innerHeadStartX - fwS, innerHeadStartX + fwS, st.s);
+
+            if (innerMaxY > 0.0) {
+                isArrowInner = max(isArrowInner, innerAlphaY * innerAlphaX); 
+            }
+        }
+    }
+    
+    // --- YOL (ARKA PLAN) YUMUŞATMASI ---
+    float pathAlpha = 1.0 - smoothstep(0.3 - fwT, 0.3 + fwT, abs(st.t - 0.5));
+    isInside = max(isArrow, pathAlpha); 
+
+    // ==========================================
+    // --- RENKLERİ HARMANLAMA (MIX) ---
+    // if/else giyotini çöpe atıldı. Pikseller birbirine smoothstep ile karışacak.
+    // ==========================================
+    vec3 finalColor = vec3(0.0);
+    float baseAlpha = 0.0;
+
+    // 1. En Alt Katman: Arka Plan Çizgisi
+    finalColor = circleColor.rgb;
+    baseAlpha = pathAlpha * cemberSaydamlik;
+
+    // 2. Orta Katman: Siyah Border (Yarı saydam kenarları harmanla)
+    finalColor = mix(finalColor, borderColor.rgb, isArrow);
+    baseAlpha = mix(baseAlpha, 1.0, isArrow);
+
+    // 3. En Üst Katman: Beyaz Dolgu (İç maskenin yumuşak uçlarını border'a yedir)
+    finalColor = mix(finalColor, arrowColor.rgb, isArrowInner);
+    baseAlpha = mix(baseAlpha, 1.0, isArrowInner);
+
+    material.diffuse = finalColor;
+    material.alpha = baseAlpha;
+    return material;
+}
+
+ */
