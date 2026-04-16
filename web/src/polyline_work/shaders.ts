@@ -58,8 +58,6 @@ export class ArrowEdgeMaterialProperty_glsl implements Cesium.MaterialProperty {
     }
 }
 
-
-
 export class ArrowEdgeMaterialProperty1 implements Cesium.MaterialProperty {
     private _arrowColor: Cesium.Property;
     private _dashColor: Cesium.Property;
@@ -364,7 +362,6 @@ export class ArrowEdgeMaterialProperty2son implements Cesium.MaterialProperty {
     }
 }
 
-
 export class ArrowEdgeMaterialProperty2 implements Cesium.MaterialProperty {
     private _arrowColor: Cesium.Property;
     private _dashColor: Cesium.Property;
@@ -517,7 +514,6 @@ getValue(time: Cesium.JulianDate, result?: any): any {
         return this === other;
     }
 }
-
 
 export class ArrowEdgeMaterialProperty2duzgun_1 implements Cesium.MaterialProperty {
     private _arrowColor: Cesium.Property;
@@ -1088,7 +1084,6 @@ export class ArrowEdgeMaterialProperty2duzgun_3 implements Cesium.MaterialProper
     }
 }
 
-
 export class ArrowEdgeMaterialProperty2duzgun_4 implements Cesium.MaterialProperty {
     private _arrowColor: Cesium.Property;
     private _dashColor: Cesium.Property;
@@ -1254,7 +1249,6 @@ getValue(time: Cesium.JulianDate, result?: any): any {
     }
 }
 
-
 export class ArrowEdgeMaterialProperty22 implements Cesium.MaterialProperty {
     private _arrowColor: Cesium.Property;
     private _dashColor: Cesium.Property;
@@ -1410,7 +1404,6 @@ export class ArrowEdgeMaterialProperty22 implements Cesium.MaterialProperty {
         return this === other;
     }
 }
-
 
 export class ArrowEdgeMaterialPropertyIlk implements Cesium.MaterialProperty {
     private _arrowColor: Cesium.Property;
@@ -1787,9 +1780,6 @@ export class ArrowEdgeMaterialPropertyIlk_Border implements Cesium.MaterialPrope
         );
     }
 }
-
-
-
 
 export class ArrowEdgeMaterialProperty_Border_Ekle implements Cesium.MaterialProperty {
     private _arrowColor: Cesium.Property;
@@ -3881,8 +3871,7 @@ export class ChevronArrowEdgeMaterialProperty_sandwichLine implements Cesium.Mat
     }
 }
 */
-// 3b kay da denedim
-
+// 3b kay da OK
 export class ChevronArrowEdgeMaterialProperty_sandwichLine implements Cesium.MaterialProperty {
     private _arrowColor: Cesium.Property;
     private _dashColor: Cesium.Property;
@@ -4053,181 +4042,7 @@ export class ChevronArrowEdgeMaterialProperty_sandwichLine implements Cesium.Mat
     }
 }
 
-export class ChevronArrowEdgeMaterialProperty_kesik_serit implements Cesium.MaterialProperty {
-    private _arrowColor: Cesium.Property;
-    private _dashColor: Cesium.Property;
-    private _definitionChanged: Cesium.Event;
-
-    constructor(
-        arrowColor: Cesium.Color,
-        dashColor: Cesium.CallbackProperty
-    ) {
-        this._arrowColor = new Cesium.ConstantProperty(arrowColor);
-        this._dashColor = dashColor;
-        this._definitionChanged = new Cesium.Event();
-
-        if (!(Cesium.Material as any)._materialCache._materials["ChevronArrowEdgeMaterialProperty_kesik_serit"]) {
-            (Cesium.Material as any)._materialCache.addMaterial("ChevronArrowEdgeMaterialProperty_kesik_serit", {
-                fabric: {
-                    type: "ChevronArrowEdgeMaterialProperty_kesik_serit",
-                    uniforms: {
-                        arrowColor: Cesium.Color.WHITE,
-                        dashColor: Cesium.Color.fromBytes(239, 12, 249, 255),
-                        dashLength: 100.0,
-                        arrowLength: 25.0,
-                        minV: 0.30, 
-                        maxV: 0.70,
-                        middleDashColor: Cesium.Color.BLACK,
-                        middleDashLength: 30.0, // Çizgi + Boşluk toplam periyot uzunluğu
-                        middleDashOnLength: 15.0 // Sadece çizginin görüneceği dolu kısım
-                    },
-                    source: `
-                        uniform vec4 arrowColor;
-                        uniform vec4 dashColor;
-                        uniform vec4 middleDashColor;
-                        uniform float dashLength;
-                        uniform float arrowLength;
-                        uniform float minV;
-                        uniform float maxV;
-                        uniform float middleDashLength;
-                        uniform float middleDashOnLength;
-                        in float v_polylineAngle;
-
-                        mat2 rotate(float rad) {
-                            float c = cos(rad);
-                            float s = sin(rad);
-                            return mat2(c, s, -s, c);
-                        }
-
-                        float modp(float x, float len) {
-                            float m = mod(x, len);
-                            return m < 0.0 ? m + len : m;
-                        }
-
-                        czm_material czm_getMaterial(czm_materialInput materialInput) {
-                            czm_material material = czm_getDefaultMaterial(materialInput);
-                            vec2 st = materialInput.st;
-
-                            vec2 pos = rotate(v_polylineAngle) * gl_FragCoord.xy;
-                            float pixelDashLength  = max(dashLength  * czm_pixelRatio, 1.0);
-                            float pixelArrowLength = max(arrowLength * czm_pixelRatio, 1.0);
-                            float pixelSegmentLength = pixelDashLength + pixelArrowLength;
-
-                            float xInSeg = modp(pos.x, pixelSegmentLength);
-
-                            float fwX = max(fwidth(pos.x), 1e-5);
-                            float blurX = fwX * 0.5;
-                            float inArrow = smoothstep(pixelDashLength - blurX, pixelDashLength + blurX, xInSeg) * (1.0 - smoothstep(pixelSegmentLength - blurX, pixelSegmentLength + blurX, xInSeg));
-
-                            float u = clamp((xInSeg - pixelDashLength) / pixelArrowLength, 0.0, 1.0);
-                            float v = st.t;
-                            
-                            float foldV = abs(v - 0.5) * 2.0;
-                            
-                            float fwU = max(fwX / pixelArrowLength, 1e-5); 
-                            float fwV = max(fwidth(v) * 2.0, 1e-5); 
-                            
-                            float blurU = fwU * 0.5; 
-                            float blurV = fwV * 0.5;
-
-                            // ==========================================
-                            // 1D ANALİTİK CHEVRON (KUSURSUZ PARALELLİK)
-                            // ==========================================
-                            float slope = 0.4; 
-
-                            // Dış Sınırlar (Kalınlık = 0.6)
-                            float leftOutU  = 0.4 - slope * foldV;
-                            float rightOutU = 1.0 - slope * foldV;
-                            
-                            // İç Sınırlar (Soldan ve Sağdan tam 0.1 birim içeride)
-                            float leftInnU  = 0.6 - slope * foldV;
-                            float rightInnU = 0.8 - slope * foldV;
-
-                            // sol sınırdan sonra 0→1 geçiş (sol kenar), sağ sınırdan sonra 1→0 geçiş (sağ kenar) 
-                            float outerU = smoothstep(leftOutU - blurU, leftOutU + blurU, u) * (1.0 - smoothstep(rightOutU - blurU, rightOutU + blurU, u));
-                            float innerU = smoothstep(leftInnU - blurU, leftInnU + blurU, u) * (1.0 - smoothstep(rightInnU - blurU, rightInnU + blurU, u));
-                            
-                            // BÜYÜK DÜZELTME 2: Uç kesiğini SADECE iç oka uyguluyoruz.
-                            float innerCapV = 1.0 - smoothstep(0.7 - blurV, 0.7 + blurV, foldV);
-
-                            // Dış sınır maskesi × ok bölgesinde mi.
-                            float alphaOuter = outerU * inArrow;
-                            // İç dolgu maskesi × uç tıraşlama × ok bölgesinde mi.
-                            float alphaInner = innerU * innerCapV * inArrow;
-
-                            vec4 dashCol = dashColor;
-                            vec4 arrowCol = arrowColor;
-                            vec4 blackCol = vec4(0.0, 0.0, 0.0, 1.0);
-                            
-                            // --- ARKA PLAN (Kesikli Şerit) ---
-                            float blurZemin = max(fwidth(v), 1e-5) * 0.5;
-                            float midV = (minV + maxV) * 0.5;
-                            float stripeThickness = (maxV - minV) * 0.2;
-                            float bStart = midV - (stripeThickness * 0.5);
-                            float bEnd = midV + (stripeThickness * 0.5);
-
-                            // 1. Orta şeridin dikey (v eksenindeki) kalınlık maskesi
-                            float verticalStripeMask = smoothstep(bStart - blurZemin, bStart + blurZemin, v) - smoothstep(bEnd - blurZemin, bEnd + blurZemin, v);
-
-                            // 2. Orta şeridin yatay (x eksenindeki) kesikli çizgi maskesi
-                            float pixelMiddleDashLength = max(middleDashLength * czm_pixelRatio, 1.0);
-                            float pixelMiddleDashOnLength = max(middleDashOnLength * czm_pixelRatio, 1.0);
-                            float xInMiddleDash = modp(pos.x, pixelMiddleDashLength);
-                            
-                            // Yatay düzlemde trafik işaretleri gibi yola aralıklarla şerit çiziyoruz
-                            float horizontalStripeMask = 1.0 - smoothstep(pixelMiddleDashOnLength - blurX, pixelMiddleDashOnLength + blurX, xInMiddleDash);
-
-                            // İkisinin çarpımı tam olarak kesik kesik bir şerit verir
-                            float finalStripeFactor = verticalStripeMask * horizontalStripeMask;
-
-                            vec4 baseColor = mix(dashCol, middleDashColor, finalStripeFactor);
-                            
-                            float edgeAlpha = smoothstep(minV - blurZemin, minV + blurZemin, v) * (1.0 - smoothstep(maxV - blurZemin, maxV + blurZemin, v));
-                            baseColor.a *= edgeAlpha;
-
-                            // --- KATMANLI RENK BİRLEŞTİRME --
-                            vec4 outColor = baseColor;
-                            outColor = mix(outColor, blackCol, alphaOuter); 
-                            outColor = mix(outColor, arrowCol, alphaInner); 
-
-                            outColor = czm_gammaCorrect(outColor);
-
-                            material.diffuse = outColor.rgb;
-                            material.alpha   = outColor.a;
-                            return material;
-                        }
-                    `
-                },
-                translucent: () => true
-            });
-        }
-    }
-
-    get isConstant(): boolean {
-        const ac = (this._arrowColor as any)?.isConstant ?? true;
-        const dc = (this._dashColor as any)?.isConstant ?? true;
-        return ac && dc;
-    }
-
-    get definitionChanged(): Cesium.Event { return this._definitionChanged; }
-    getType(_time: Cesium.JulianDate): string { return "ChevronArrowEdgeMaterialProperty_kesik_serit"; }
-
-    getValue(time: Cesium.JulianDate, result?: any): any {
-        if (!result) result = {};
-        result.arrowColor = this._arrowColor.getValue(time);
-        result.dashColor = this._dashColor.getValue(time);
-        return result;
-    }
-
-    equals(other: Cesium.MaterialProperty): boolean {
-        return (
-            other instanceof ChevronArrowEdgeMaterialProperty_kesik_serit &&
-            (other as any)._arrowColor?.equals?.(this._arrowColor) === true &&
-            (other as any)._dashColor?.equals?.(this._dashColor) === true
-        );
-    }
-}
-
+// 3b kay da OK
 export class ChevronArrowEdgeMaterialProperty_kesik_serit_mesafeli implements Cesium.MaterialProperty {
     private _arrowColor: Cesium.Property;
     private _dashColor: Cesium.Property;
@@ -4248,8 +4063,8 @@ export class ChevronArrowEdgeMaterialProperty_kesik_serit_mesafeli implements Ce
                     uniforms: {
                         arrowColor: Cesium.Color.WHITE,
                         dashColor: Cesium.Color.fromBytes(239, 12, 249, 255),
-                        dashLength: 100.0,
-                        arrowLength: 25.0,
+                        dashLength: 48.0,
+                        arrowLength: 12.0,
                         minV: 0.30, 
                         maxV: 0.70,
                         middleDashColor: Cesium.Color.BLACK,
@@ -4303,20 +4118,18 @@ export class ChevronArrowEdgeMaterialProperty_kesik_serit_mesafeli implements Ce
                             float blurU = fwU * 0.5; 
                             float blurV = fwV * 0.5;
 
-                            // ==========================================
-                            // 1D ANALİTİK CHEVRON (KUSURSUZ PARALELLİK)
                             float slope = 0.4; 
 
                             float leftOutU  = 0.4 - slope * foldV;
                             float rightOutU = 1.0 - slope * foldV;
                             
-                            float leftInnU  = 0.6 - slope * foldV;
-                            float rightInnU = 0.8 - slope * foldV;
+                            float leftInnU  = 0.5 - slope * foldV;
+                            float rightInnU = 0.9 - slope * foldV;
 
                             float outerU = smoothstep(leftOutU - blurU, leftOutU + blurU, u) * (1.0 - smoothstep(rightOutU - blurU, rightOutU + blurU, u));
                             float innerU = smoothstep(leftInnU - blurU, leftInnU + blurU, u) * (1.0 - smoothstep(rightInnU - blurU, rightInnU + blurU, u));
                             
-                            float innerCapV = 1.0 - smoothstep(0.7 - blurV, 0.7 + blurV, foldV);
+                            float innerCapV = 1.0 - smoothstep(0.8 - blurV, 0.8 + blurV, foldV);
 
                             float alphaOuter = outerU * inArrow;
                             float alphaInner = innerU * innerCapV * inArrow;
@@ -4335,10 +4148,7 @@ export class ChevronArrowEdgeMaterialProperty_kesik_serit_mesafeli implements Ce
                             // Orta şeridin v eksenindeki dikey sınırları
                             float verticalStripeMask = smoothstep(bStart - blurZemin, bStart + blurZemin, v) - smoothstep(bEnd - blurZemin, bEnd + blurZemin, v);
 
-                            // ==========================================
                             // 2N+1 MATEMATİK YÖNTEMİ (Statik Rakam Yok, Tam Oran)
-                            // ==========================================
-                            // GÖRSEL BOŞLUK HESABI (HARİKA DETAY!):
                             // Okun kuyruğu düz bir duvar değil, "V" şeklinde içeri kıvrıktır.
                             // Merkez eksende (v=0.5) ok u=0.4'ten itibaren çizilmeye başlar.
                             // Bu da pixelDashLength sınırına ek olarak merkeze doğru (0.4 * pixelArrowLength) 
@@ -4358,10 +4168,6 @@ export class ChevronArrowEdgeMaterialProperty_kesik_serit_mesafeli implements Ce
                             float distToDashEdge = 0.5 * unitLength - abs(m - unitLength);
                             
                             // Maske çizgileri çizer.
-                            // inArrow makaslaması İPTAL EDİLMİŞTİR!
-                            // Neden? Çünkü matematiğimiz o kadar kusursuz ki, 4. çizgiyi (ok alanına sızan çizgiyi)
-                            // tam mili milimetresine okun gövdesinin (alphaOuter) başladığı yere denk getirir!
-                            // Okun kendi katmanı, onun üzerine çizilip o istenmeyen 4. çizgiyi zaten yutacaktır.
                             float horizontalStripeMask = smoothstep(-blurX, blurX, distToDashEdge);
 
                             // Dikey kalınlıkla kesişimi tam bir kesikli çizgiyi verir.
@@ -4415,6 +4221,192 @@ export class ChevronArrowEdgeMaterialProperty_kesik_serit_mesafeli implements Ce
     }
 }
 
+// OK
+export class Uclu_ChevronArrowEdgeMaterialProperty_kesik_serit_mesafeli implements Cesium.MaterialProperty {
+    private _arrowColor: Cesium.Property;
+    private _dashColor: Cesium.Property;
+    private _definitionChanged: Cesium.Event;
+
+    constructor(
+        arrowColor: Cesium.Color,
+        dashColor: Cesium.CallbackProperty
+    ) {
+        this._arrowColor = new Cesium.ConstantProperty(arrowColor);
+        this._dashColor = dashColor;
+        this._definitionChanged = new Cesium.Event();
+
+        if (!(Cesium.Material as any)._materialCache._materials["Uclu_ChevronArrowEdgeMaterialProperty_kesik_serit_mesafeli"]) {
+            (Cesium.Material as any)._materialCache.addMaterial("Uclu_ChevronArrowEdgeMaterialProperty_kesik_serit_mesafeli", {
+                fabric: {
+                    type: "Uclu_ChevronArrowEdgeMaterialProperty_kesik_serit_mesafeli",
+                    uniforms: {
+                        arrowColor: Cesium.Color.WHITE,
+                        dashColor: Cesium.Color.fromBytes(239, 12, 249, 255),
+                        dashLength: 48.0,   // Senin belirlediğin değer
+                        arrowLength: 36.0,  // Toplam ok alanı (12 x 3)
+                        minV: 0.30, 
+                        maxV: 0.70,
+                        middleDashColor: Cesium.Color.BLACK,
+                        dashCount: 4.0
+                    },
+                    source: `
+                        uniform vec4 arrowColor;
+                        uniform vec4 dashColor;
+                        uniform vec4 middleDashColor;
+                        uniform float dashLength;
+                        uniform float arrowLength;
+                        uniform float minV;
+                        uniform float maxV;
+                        uniform float dashCount;
+                        in float v_polylineAngle;
+
+                        mat2 rotate(float rad) {
+                            float c = cos(rad);
+                            float s = sin(rad);
+                            return mat2(c, s, -s, c);
+                        }
+
+                        float modp(float x, float len) {
+                            float m = mod(x, len);
+                            return m < 0.0 ? m + len : m;
+                        }
+
+                        czm_material czm_getMaterial(czm_materialInput materialInput) {
+                            czm_material material = czm_getDefaultMaterial(materialInput);
+                            vec2 st = materialInput.st;
+
+                            vec2 pos = rotate(v_polylineAngle) * gl_FragCoord.xy;
+                            float pixelDashLength  = max(dashLength  * czm_pixelRatio, 1.0);
+                            float pixelArrowLength = max(arrowLength * czm_pixelRatio, 1.0);
+                            float pixelSegmentLength = pixelDashLength + pixelArrowLength;
+                            
+                            // Toplam ok alanını 3 eşit parçaya (her biri 12 piksel) bölüyoruz
+                            float singleArrowLen = pixelArrowLength / 3.0;
+
+                            float xInSeg = modp(pos.x, pixelSegmentLength);
+
+                            float fwX = max(fwidth(pos.x), 1e-5);
+                            float blurX = fwX * 0.5;
+                            float inArrow = smoothstep(pixelDashLength - blurX, pixelDashLength + blurX, xInSeg) * (1.0 - smoothstep(pixelSegmentLength - blurX, pixelSegmentLength + blurX, xInSeg));
+
+                            // u_full: 0.0'dan 3.0'a kadar giden, 3 ok kapsayan ana koordinatımız
+                            float u_full = clamp((xInSeg - pixelDashLength) / singleArrowLen, 0.0, 3.0);
+                            float v = st.t;
+                            
+                            float foldV = abs(v - 0.5) * 2.0;
+                            
+                            // Anti-aliasing bulanıklığını 12 piksellik tekil uzunluğa göre ayarlıyoruz
+                            float fwU = max(fwX / singleArrowLen, 1e-5); 
+                            float fwV = max(fwidth(v) * 2.0, 1e-5); 
+                            
+                            float blurU = fwU * 0.5; 
+                            float blurV = fwV * 0.5;
+
+                            float slope = 0.4; 
+
+                            // Orijinal tekli okun lokal koordinatları
+                            float lOut = 0.4 - slope * foldV;
+                            float rOut = 1.0 - slope * foldV;
+                            float lInn = 0.5 - slope * foldV;
+                            float rInn = 0.9 - slope * foldV;
+
+                            // 1. CHEVRON (0.0 ile 1.0 arasında)
+                            float outer1 = smoothstep(lOut - blurU, lOut + blurU, u_full) * (1.0 - smoothstep(rOut - blurU, rOut + blurU, u_full));
+                            float inner1 = smoothstep(lInn - blurU, lInn + blurU, u_full) * (1.0 - smoothstep(rInn - blurU, rInn + blurU, u_full));
+
+                            // 2. CHEVRON (+1.0 kaydırılmış, 1.0 ile 2.0 arasında)
+                            float outer2 = smoothstep(lOut + 1.0 - blurU, lOut + 1.0 + blurU, u_full) * (1.0 - smoothstep(rOut + 1.0 - blurU, rOut + 1.0 + blurU, u_full));
+                            float inner2 = smoothstep(lInn + 1.0 - blurU, lInn + 1.0 + blurU, u_full) * (1.0 - smoothstep(rInn + 1.0 - blurU, rInn + 1.0 + blurU, u_full));
+
+                            // 3. CHEVRON (+2.0 kaydırılmış, 2.0 ile 3.0 arasında)
+                            float outer3 = smoothstep(lOut + 2.0 - blurU, lOut + 2.0 + blurU, u_full) * (1.0 - smoothstep(rOut + 2.0 - blurU, rOut + 2.0 + blurU, u_full));
+                            float inner3 = smoothstep(lInn + 2.0 - blurU, lInn + 2.0 + blurU, u_full) * (1.0 - smoothstep(rInn + 2.0 - blurU, rInn + 2.0 + blurU, u_full));
+
+                            // Uçların yumuşatılması
+                            float innerCapV = 1.0 - smoothstep(0.8 - blurV, 0.8 + blurV, foldV);
+
+                            // Tüm maskeleri toplayıp sınırı 1.0'da tutuyoruz
+                            float alphaOuter = clamp(outer1 + outer2 + outer3, 0.0, 1.0) * inArrow;
+                            float alphaInner = clamp(inner1 + inner2 + inner3, 0.0, 1.0) * innerCapV * inArrow;
+
+                            vec4 dashCol = dashColor;
+                            vec4 arrowCol = arrowColor;
+                            vec4 blackCol = vec4(0.0, 0.0, 0.0, 1.0);
+                            
+                            // --- ARKA PLAN (Kesikli Şerit) ---
+                            float blurZemin = max(fwidth(v), 1e-5) * 0.5;
+                            float midV = (minV + maxV) * 0.5;
+                            float stripeThickness = (maxV - minV) * 0.4;
+                            float bStart = midV - (stripeThickness * 0.5);
+                            float bEnd = midV + (stripeThickness * 0.5);
+
+                            float verticalStripeMask = smoothstep(bStart - blurZemin, bStart + blurZemin, v) - smoothstep(bEnd - blurZemin, bEnd + blurZemin, v);
+
+                            // GÖRSEL BOŞLUK GÜNCELLEMESİ
+                            // 1. ok u=0.4 noktasından başladığı için, mesafe hesabını 12 piksellik "singleArrowLen" ile çarpıyoruz.
+                            float visualGap = pixelDashLength + 0.4 * singleArrowLen;
+
+                            float dCount = max(floor(dashCount), 1.0); 
+                            float totalParts = 2.0 * dCount + 1.0;
+                            
+                            float unitLength = visualGap / totalParts;
+
+                            //float x_shifted = xInSeg - 0.5 * unitLength;
+                            //float m = modp(x_shifted, 2.0 * unitLength);
+                            //float distToDashEdge = 0.5 * unitLength - abs(m - unitLength);
+                            float distToDashEdge = unitLength * (0.5 - abs(fract(xInSeg / (2.0 * unitLength) - 0.25) * 2.0 - 1.0));
+                            
+                            float horizontalStripeMask = smoothstep(-blurX, blurX, distToDashEdge);
+
+                            float finalStripeFactor = verticalStripeMask * horizontalStripeMask;
+
+                            vec4 baseColor = mix(dashCol, middleDashColor, finalStripeFactor);
+                            
+                            float edgeAlpha = smoothstep(minV - blurZemin, minV + blurZemin, v) * (1.0 - smoothstep(maxV - blurZemin, maxV + blurZemin, v));
+                            baseColor.a *= edgeAlpha;
+
+                            // --- KATMANLI RENK BİRLEŞTİRME --
+                            vec4 outColor = baseColor;
+                            outColor = mix(outColor, blackCol, alphaOuter); 
+                            outColor = mix(outColor, arrowCol, alphaInner); 
+
+                            outColor = czm_gammaCorrect(outColor);
+
+                            material.diffuse = outColor.rgb;
+                            material.alpha   = outColor.a;
+                            return material;
+                        }
+                    `
+                },
+                translucent: () => true
+            });
+        }
+    }
+
+    get isConstant(): boolean {
+        const ac = (this._arrowColor as any)?.isConstant ?? true;
+        const dc = (this._dashColor as any)?.isConstant ?? true;
+        return ac && dc;
+    }
+
+    get definitionChanged(): Cesium.Event { return this._definitionChanged; }
+    getType(_time: Cesium.JulianDate): string { return "Uclu_ChevronArrowEdgeMaterialProperty_kesik_serit_mesafeli"; }
+
+    getValue(time: Cesium.JulianDate, result?: any): any {
+        if (!result) result = {};
+        result.arrowColor = this._arrowColor.getValue(time);
+        result.dashColor = this._dashColor.getValue(time);
+        return result;
+    }
+
+    equals(other: Cesium.MaterialProperty): boolean {
+        return (
+            other instanceof Uclu_ChevronArrowEdgeMaterialProperty_kesik_serit_mesafeli &&
+            (other as any)._arrowColor?.equals?.(this._arrowColor) === true &&
+            (other as any)._dashColor?.equals?.(this._dashColor) === true
+        );
+    }
+}
 
 export class ChevronDoubleArrowEdgeMaterialProperty implements Cesium.MaterialProperty {
     private _arrowColor: Cesium.Property;
@@ -5327,210 +5319,3 @@ export class Cember_Material implements Cesium.MaterialProperty {
 }
 */
 
-export class AI_ChevronArrowEdgeMaterialProperty_kesik_serit_mesafeli implements Cesium.MaterialProperty {
-    private _arrowColor: Cesium.Property;
-    private _dashColor: Cesium.Property;
-    private _definitionChanged: Cesium.Event;
-
-    constructor(
-        arrowColor: Cesium.Color,
-        dashColor: Cesium.CallbackProperty
-    ) {
-        this._arrowColor = new Cesium.ConstantProperty(arrowColor);
-        this._dashColor = dashColor;
-        this._definitionChanged = new Cesium.Event();
-
-        if (!(Cesium.Material as any)._materialCache._materials["AI_ChevronArrowEdgeMaterialProperty_kesik_serit_mesafeli"]) {
-            (Cesium.Material as any)._materialCache.addMaterial("AI_ChevronArrowEdgeMaterialProperty_kesik_serit_mesafeli", {
-                fabric: {
-                    type: "AI_ChevronArrowEdgeMaterialProperty_kesik_serit_mesafeli",
-                    uniforms: {
-                        arrowColor: Cesium.Color.WHITE,
-                        dashColor: Cesium.Color.fromBytes(239, 12, 249, 255),
-                        dashLength: 100.0,
-                        arrowLength: 25.0,
-                        minV: 0.30, 
-                        maxV: 0.70,
-                        middleDashColor: Cesium.Color.BLACK,
-                        dashCount: 4.0 // 3 ise 7 parçaya (3 çizgi 4 boşluk) böler.
-                    },
-                    source: `
-                        uniform vec4 arrowColor;
-                        uniform vec4 dashColor;
-                        uniform vec4 middleDashColor;
-                        uniform float dashLength;
-                        uniform float arrowLength;
-                        uniform float minV;
-                        uniform float maxV;
-                        uniform float dashCount;
-                        in float v_polylineAngle;
-
-                        mat2 rotate(float rad) {
-                            float c = cos(rad);
-                            float s = sin(rad);
-                            return mat2(c, s, -s, c);
-                        }
-
-                        float modp(float x, float len) {
-                            float m = mod(x, len);
-                            return m < 0.0 ? m + len : m;
-                        }
-
-                        czm_material czm_getMaterial(czm_materialInput materialInput) {
-                            czm_material material = czm_getDefaultMaterial(materialInput);
-                            vec2 st = materialInput.st;
-
-                            vec2 pos = rotate(v_polylineAngle) * gl_FragCoord.xy;
-                            float pixelDashLength  = max(dashLength  * czm_pixelRatio, 1.0);
-                            float pixelArrowLength = max(arrowLength * czm_pixelRatio, 1.0);
-                            float pixelSegmentLength = pixelDashLength + pixelArrowLength;
-
-                            float xInSeg = modp(pos.x, pixelSegmentLength);
-
-                            float fwX = max(fwidth(pos.x), 1e-5);
-                            float blurX = fwX * 0.5;
-                            float inArrow = smoothstep(pixelDashLength - blurX, pixelDashLength + blurX, xInSeg) * (1.0 - smoothstep(pixelSegmentLength - blurX, pixelSegmentLength + blurX, xInSeg));
-
-                            float u = clamp((xInSeg - pixelDashLength) / pixelArrowLength, 0.0, 1.0);
-                            float v = st.t;
-                            
-                            // Merkezden uzaklaştıkça artan katlama değeri (V şekli için)
-                            float foldV = abs(v - 0.5) * 2.0;
-                            
-                            float fwU = max(fwX / pixelArrowLength, 1e-5); 
-                            float fwV = max(fwidth(v) * 2.0, 1e-5); 
-                            
-                            float blurU = fwU * 0.5; 
-                            float blurV = fwV * 0.5;
-
-                            // ==========================================
-                            // 1D ANALİTİK 3'LÜ CHEVRON MANTIĞI
-                            // ==========================================
-                            // Tamamen eski analitik mantığın 3 kez kaydırılmış halidir.
-                            // U aralığını (0.0 -> 1.0) 3 ok alacak şekilde böldük.
-                            float slope = 0.25;      // Geriye yatıklık açısı
-                            float width = 0.20;      // Her okun dış kalınlığı
-                            float edgeWidth = 0.05;  // Siyah kenarlık kalınlığı
-
-                            // Her bir okun başlangıç ofsetleri
-                            float offset1 = 0.25;
-                            float offset2 = 0.50;
-                            float offset3 = 0.75;
-
-                            // --- 1. CHEVRON ---
-                            float lOut1 = offset1 - slope * foldV;
-                            float rOut1 = offset1 + width - slope * foldV;
-                            float lInn1 = offset1 + edgeWidth - slope * foldV;
-                            float rInn1 = offset1 + width - edgeWidth - slope * foldV;
-
-                            // --- 2. CHEVRON ---
-                            float lOut2 = offset2 - slope * foldV;
-                            float rOut2 = offset2 + width - slope * foldV;
-                            float lInn2 = offset2 + edgeWidth - slope * foldV;
-                            float rInn2 = offset2 + width - edgeWidth - slope * foldV;
-
-                            // --- 3. CHEVRON ---
-                            float lOut3 = offset3 - slope * foldV;
-                            float rOut3 = offset3 + width - slope * foldV;
-                            float lInn3 = offset3 + edgeWidth - slope * foldV;
-                            float rInn3 = offset3 + width - edgeWidth - slope * foldV;
-
-                            // Maskeleri Pürüzsüzleştir ve Birleştir
-                            float outer1 = smoothstep(lOut1 - blurU, lOut1 + blurU, u) * (1.0 - smoothstep(rOut1 - blurU, rOut1 + blurU, u));
-                            float outer2 = smoothstep(lOut2 - blurU, lOut2 + blurU, u) * (1.0 - smoothstep(rOut2 - blurU, rOut2 + blurU, u));
-                            float outer3 = smoothstep(lOut3 - blurU, lOut3 + blurU, u) * (1.0 - smoothstep(rOut3 - blurU, rOut3 + blurU, u));
-                            float outerU = max(max(outer1, outer2), outer3); // 3'ünün dış birleşimi
-
-                            float inner1 = smoothstep(lInn1 - blurU, lInn1 + blurU, u) * (1.0 - smoothstep(rInn1 - blurU, rInn1 + blurU, u));
-                            float inner2 = smoothstep(lInn2 - blurU, lInn2 + blurU, u) * (1.0 - smoothstep(rInn2 - blurU, rInn2 + blurU, u));
-                            float inner3 = smoothstep(lInn3 - blurU, lInn3 + blurU, u) * (1.0 - smoothstep(rInn3 - blurU, rInn3 + blurU, u));
-                            float innerU = max(max(inner1, inner2), inner3); // 3'ünün iç birleşimi
-                            
-                            // Ucun çok sivri olmasını engelleme (Orijinal kodundaki detay)
-                            float innerCapV = 1.0 - smoothstep(0.7 - blurV, 0.7 + blurV, foldV);
-
-                            float alphaOuter = outerU * inArrow;
-                            float alphaInner = innerU * innerCapV * inArrow;
-
-                            vec4 dashCol = dashColor;
-                            vec4 arrowCol = arrowColor;
-                            vec4 blackCol = vec4(0.0, 0.0, 0.0, 1.0); // Taşmaya izin veren tam opaklık
-                            
-                            // --- ARKA PLAN (Kesikli Şerit) ---
-                            float blurZemin = max(fwidth(v), 1e-5) * 0.5;
-                            float midV = (minV + maxV) * 0.5;
-                            float stripeThickness = (maxV - minV) * 0.4;
-                            float bStart = midV - (stripeThickness * 0.5);
-                            float bEnd = midV + (stripeThickness * 0.5);
-
-                            float verticalStripeMask = smoothstep(bStart - blurZemin, bStart + blurZemin, v) - smoothstep(bEnd - blurZemin, bEnd + blurZemin, v);
-
-                            // ==========================================
-                            // 2N+1 MATEMATİK YÖNTEMİ
-                            // ==========================================
-                            // YENİ GÖRSEL BOŞLUK HESABI:
-                            // Yeni 3'lü tasarımda ilk ok u=0.25'te başlar. Bu yüzden görsel 
-                            // boşluğa 0.25 * pixelArrowLength kadar ek yapıyoruz.
-                            float visualGap = pixelDashLength + 0.25 * pixelArrowLength;
-
-                            float dCount = max(floor(dashCount), 1.0); 
-                            float totalParts = 2.0 * dCount + 1.0;
-                            
-                            float unitLength = visualGap / totalParts;
-
-                            float x_shifted = xInSeg - 0.5 * unitLength;
-                            float m = modp(x_shifted, 2.0 * unitLength);
-                            float distToDashEdge = 0.5 * unitLength - abs(m - unitLength);
-                            
-                            // Maske çizgileri çizer.
-                            float horizontalStripeMask = smoothstep(-blurX, blurX, distToDashEdge);
-                            float finalStripeFactor = verticalStripeMask * horizontalStripeMask;
-
-                            vec4 baseColor = mix(dashCol, middleDashColor, finalStripeFactor);
-                            
-                            float edgeAlpha = smoothstep(minV - blurZemin, minV + blurZemin, v) * (1.0 - smoothstep(maxV - blurZemin, maxV + blurZemin, v));
-                            baseColor.a *= edgeAlpha;
-
-                            // --- KATMANLI RENK BİRLEŞTİRME --
-                            vec4 outColor = baseColor;
-                            // Outer ve Inner değerleri üzerinden renkleri giydiriyoruz
-                            outColor = mix(outColor, blackCol, alphaOuter); 
-                            outColor = mix(outColor, arrowCol, alphaInner); 
-
-                            outColor = czm_gammaCorrect(outColor);
-
-                            material.diffuse = outColor.rgb;
-                            material.alpha   = outColor.a;
-                            return material;
-                        }
-                    `
-                },
-                translucent: () => true
-            });
-        }
-    }
-
-    get isConstant(): boolean {
-        const ac = (this._arrowColor as any)?.isConstant ?? true;
-        const dc = (this._dashColor as any)?.isConstant ?? true;
-        return ac && dc;
-    }
-
-    get definitionChanged(): Cesium.Event { return this._definitionChanged; }
-    getType(_time: Cesium.JulianDate): string { return "AI_ChevronArrowEdgeMaterialProperty_kesik_serit_mesafeli"; }
-
-    getValue(time: Cesium.JulianDate, result?: any): any {
-        if (!result) result = {};
-        result.arrowColor = this._arrowColor.getValue(time);
-        result.dashColor = this._dashColor.getValue(time);
-        return result;
-    }
-
-    equals(other: Cesium.MaterialProperty): boolean {
-        return (
-            other instanceof AI_ChevronArrowEdgeMaterialProperty_kesik_serit_mesafeli &&
-            (other as any)._arrowColor?.equals?.(this._arrowColor) === true &&
-            (other as any)._dashColor?.equals?.(this._dashColor) === true
-        );
-    }
-}

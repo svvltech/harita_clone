@@ -20,10 +20,9 @@ import {
   ChevronArrowEdgeMaterialProperty,
   ChevronArrowEdgeMaterialProperty_sandwichLine,
   ArrowEdgeMaterialPropertyHybrid,
-  ChevronArrowEdgeMaterialProperty_kesik_serit,
   ChevronArrowEdgeMaterialProperty_kesik_serit_mesafeli,
   ChevronDoubleArrowEdgeMaterialProperty,
-  AI_ChevronArrowEdgeMaterialProperty_kesik_serit_mesafeli
+  Uclu_ChevronArrowEdgeMaterialProperty_kesik_serit_mesafeli,
 } from "./shaders";
 import { viewer } from "../harita";
 
@@ -688,7 +687,7 @@ export const ucusRotasiEkle = (): void => {
     const ucusRotasiMateryali =
      // new ChevronArrowEdgeMaterialProperty_sandwichLine(okRengi, çizgiRengi);
     // new ChevronArrowEdgeMaterialProperty_kesik_serit(okRengi, çizgiRengi);
-    new AI_ChevronArrowEdgeMaterialProperty_kesik_serit_mesafeli(okRengi, çizgiRengi);
+    new Uclu_ChevronArrowEdgeMaterialProperty_kesik_serit_mesafeli(okRengi, çizgiRengi);
 
     // 4. Uçuş rotası için 3D koordinatlar (Boylam, Enlem, İrtifa-Metre)
     // Uçak yörüngesini simüle etmek için giderek artan bir irtifa kullanıyoruz.
