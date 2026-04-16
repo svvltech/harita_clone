@@ -2505,7 +2505,7 @@ export class ArrowEdgeMaterialProperty_Border_Ekle_v4 implements Cesium.Material
                         borderColor: Cesium.Color.BLACK,
                         borderWidth: 1.0
                     },
-  source: `
+                    source: `
                         uniform vec4 arrowColor;   
                         uniform vec4 dashColor;
                         uniform float dashLength;
@@ -2528,80 +2528,80 @@ export class ArrowEdgeMaterialProperty_Border_Ekle_v4 implements Cesium.Material
                             return m < 0.0 ? m + len : m;
                         }
 
-vec2 arrowMask(float u, float v, float bWidth, float pArrowLen) {
-    const float bodyFrac = 0.30;
-    const float bodyH    = 0.35;
-    float halfBody = bodyH * 0.5;
-    float c = abs(v - 0.5);
+                        vec2 arrowMask(float u, float v, float bWidth, float pArrowLen) {
+                            const float bodyFrac = 0.30;
+                            const float bodyH    = 0.35;
+                            float halfBody = bodyH * 0.5;
+                            float c = abs(v - 0.5);
 
-    // 1. Anti-Aliasing (Yumuşatma) Pikselleri
-    float fwU = 1.0 / max(pArrowLen, 1.0); 
-    float fwC = max(fwidth(v), 1e-5); 
+                            // 1. Anti-Aliasing (Yumuşatma) Pikselleri
+                            float fwU = 1.0 / max(pArrowLen, 1.0); 
+                            float fwC = max(fwidth(v), 1e-5); 
 
-    // 2. Ekran En/Boy Oranı ve Eğim Hesaplaması (Saf Geometri)
-    float W = 1.0 / fwC; // Dikeydeki toplam piksel
-    float L = max(pArrowLen, 1.0); // Yataydaki toplam piksel
-    
-    // Üçgenin Eğimi (m = Karşı / Komşu)
-    float headLenPx = L * (1.0 - bodyFrac);
-    float headHalfHeightPx = W * 0.5;
-    float slope = headHalfHeightPx / max(headLenPx, 1e-5);
-    float slopeMultiplier = sqrt(1.0 + slope * slope); // Pisagor Çarpanı
+                            // 2. Ekran En/Boy Oranı ve Eğim Hesaplaması (Saf Geometri)
+                            float W = 1.0 / fwC; // Dikeydeki toplam piksel
+                            float L = max(pArrowLen, 1.0); // Yataydaki toplam piksel
+                            
+                            // Üçgenin Eğimi (m = Karşı / Komşu)
+                            float headLenPx = L * (1.0 - bodyFrac);
+                            float headHalfHeightPx = W * 0.5;
+                            float slope = headHalfHeightPx / max(headLenPx, 1e-5);
+                            float slopeMultiplier = sqrt(1.0 + slope * slope); // Pisagor Çarpanı
 
-    // 3. PİKSEL BAZLI KALINLIK UZAY ÇEVİRİSİ (BÜTÜN DÜZELTME BURADA)
-    // bWidth artık 2.0 gibi bir "Piksel" değeri. 
-    // Bunu UV (0-1) uzayına çevirmek için ekran piksel yoğunlukları ile çarpıyoruz.
-    float bWidthV = bWidth * fwC; // Alt ve Üst Gövde kalınlığı (V eksenine çevrildi)
-    float bWidthU = bWidth * fwU; // Sol ve Sağ Dikey kalınlık (U eksenine çevrildi)
-    
-    // Çapraz Eğim kalınlığı: Önce piksel bazında Pisagor uygulayıp sonra V uzayına çeviriyoruz.
-    float offsetV_px = bWidth * slopeMultiplier; 
-    float bWidthV_diag = offsetV_px * fwC; 
+                            // 3. PİKSEL BAZLI KALINLIK UZAY ÇEVİRİSİ (BÜTÜN DÜZELTME BURADA)
+                            // bWidth artık 2.0 gibi bir "Piksel" değeri. 
+                            // Bunu UV (0-1) uzayına çevirmek için ekran piksel yoğunlukları ile çarpıyoruz.
+                            float bWidthV = bWidth * fwC; // Alt ve Üst Gövde kalınlığı (V eksenine çevrildi)
+                            float bWidthU = bWidth * fwU; // Sol ve Sağ Dikey kalınlık (U eksenine çevrildi)
+                            
+                            // Çapraz Eğim kalınlığı: Önce piksel bazında Pisagor uygulayıp sonra V uzayına çeviriyoruz.
+                            float offsetV_px = bWidth * slopeMultiplier; 
+                            float bWidthV_diag = offsetV_px * fwC; 
 
-    // ==========================================
-    // --- DIŞ MASKE ---
-    // ==========================================
-    float inBodyU_outer = 1.0 - smoothstep(bodyFrac - fwU, bodyFrac + fwU, u);
-    float inBodyV_outer = 1.0 - smoothstep(halfBody - fwC, halfBody + fwC, c);
-    float alphaBodyOuter = inBodyU_outer * inBodyV_outer; 
+                            // ==========================================
+                            // --- DIŞ MASKE ---
+                            // ==========================================
+                            float inBodyU_outer = 1.0 - smoothstep(bodyFrac - fwU, bodyFrac + fwU, u);
+                            float inBodyV_outer = 1.0 - smoothstep(halfBody - fwC, halfBody + fwC, c);
+                            float alphaBodyOuter = inBodyU_outer * inBodyV_outer; 
 
-    float b = clamp((u - bodyFrac) / max(1.0 - bodyFrac, 1e-6), 0.0, 1.0);
-    float halfHead = 0.5 * (1.0 - b);
-    
-    // Çapraz çizgiler için eğime göre büyütülmüş yumuşatma
-    float fwHeadV = fwC * slopeMultiplier; 
+                            float b = clamp((u - bodyFrac) / max(1.0 - bodyFrac, 1e-6), 0.0, 1.0);
+                            float halfHead = 0.5 * (1.0 - b);
+                            
+                            // Çapraz çizgiler için eğime göre büyütülmüş yumuşatma
+                            float fwHeadV = fwC * slopeMultiplier; 
 
-    // Ucu 1.0 noktasında dışarı sızmaması için giyotin ile kestik
-    float inHeadU_outer = smoothstep(bodyFrac - fwU, bodyFrac + fwU, u) * (1.0 - smoothstep(1.0 - fwU, 1.0, u));
-    float inHeadV_outer = 1.0 - smoothstep(halfHead - fwHeadV, halfHead + fwHeadV, c);
-    float alphaHeadOuter = inHeadU_outer * inHeadV_outer; 
+                            // Ucu 1.0 noktasında dışarı sızmaması için giyotin ile kestik
+                            float inHeadU_outer = smoothstep(bodyFrac - fwU, bodyFrac + fwU, u) * (1.0 - smoothstep(1.0 - fwU, 1.0, u));
+                            float inHeadV_outer = 1.0 - smoothstep(halfHead - fwHeadV, halfHead + fwHeadV, c);
+                            float alphaHeadOuter = inHeadU_outer * inHeadV_outer; 
 
-    float outerMask = clamp(alphaBodyOuter + alphaHeadOuter, 0.0, 1.0);
+                            float outerMask = clamp(alphaBodyOuter + alphaHeadOuter, 0.0, 1.0);
 
-    // ==========================================
-    // --- İÇ MASKE (BEYAZ DOLGU) ---
-    // ==========================================
-    float innerHalfBody = max(halfBody - bWidthV, 0.0);
-    float innerHalfHead = max(halfHead - bWidthV_diag, 0.0);
+                            // ==========================================
+                            // --- İÇ MASKE (BEYAZ DOLGU) ---
+                            // ==========================================
+                            float innerHalfBody = max(halfBody - bWidthV, 0.0);
+                            float innerHalfHead = max(halfHead - bWidthV_diag, 0.0);
 
-    float inBodyU_inner = smoothstep(bWidthU - fwU, bWidthU + fwU, u) * (1.0 - smoothstep(bodyFrac - fwU, bodyFrac + fwU, u));
-    float inBodyV_inner = 1.0 - smoothstep(innerHalfBody - fwC, innerHalfBody + fwC, c);
-    float alphaBodyInner = inBodyU_inner * inBodyV_inner;
+                            float inBodyU_inner = smoothstep(bWidthU - fwU, bWidthU + fwU, u) * (1.0 - smoothstep(bodyFrac - fwU, bodyFrac + fwU, u));
+                            float inBodyV_inner = 1.0 - smoothstep(innerHalfBody - fwC, innerHalfBody + fwC, c);
+                            float alphaBodyInner = inBodyU_inner * inBodyV_inner;
 
-    // İç beyaz üçgenin İğne Ucu gibi bittiği sıfır noktası
-    float innerTipU = bodyFrac + (1.0 - bodyFrac) * (1.0 - (bWidthV_diag / 0.5)); // 0.5 üçgenin halfHead tavanı
-    
-    // Gövde bağlantısında sınır yok, sadece kulakçıklarda bWidthU kadar sınır var
-    float innerHeadStartU = bodyFrac + (1.0 - inBodyV_inner) * bWidthU;
+                            // İç beyaz üçgenin İğne Ucu gibi bittiği sıfır noktası
+                            float innerTipU = bodyFrac + (1.0 - bodyFrac) * (1.0 - (bWidthV_diag / 0.5)); // 0.5 üçgenin halfHead tavanı
+                            
+                            // Gövde bağlantısında sınır yok, sadece kulakçıklarda bWidthU kadar sınır var
+                            float innerHeadStartU = bodyFrac + (1.0 - inBodyV_inner) * bWidthU;
 
-    float inHeadU_inner = smoothstep(innerHeadStartU - fwU, innerHeadStartU + fwU, u) * (1.0 - smoothstep(innerTipU - fwU, innerTipU, u));
-    float inHeadV_inner = 1.0 - smoothstep(innerHalfHead - fwHeadV, innerHalfHead + fwHeadV, c);
-    float alphaHeadInner = inHeadU_inner * inHeadV_inner;
+                            float inHeadU_inner = smoothstep(innerHeadStartU - fwU, innerHeadStartU + fwU, u) * (1.0 - smoothstep(innerTipU - fwU, innerTipU, u));
+                            float inHeadV_inner = 1.0 - smoothstep(innerHalfHead - fwHeadV, innerHalfHead + fwHeadV, c);
+                            float alphaHeadInner = inHeadU_inner * inHeadV_inner;
 
-    float innerMask = clamp(alphaBodyInner + alphaHeadInner, 0.0, 1.0);
+                            float innerMask = clamp(alphaBodyInner + alphaHeadInner, 0.0, 1.0);
 
-    return vec2(outerMask, innerMask);
-}
+                            return vec2(outerMask, innerMask);
+                        }
 
                         czm_material czm_getMaterial(czm_materialInput materialInput) {
                             czm_material material = czm_getDefaultMaterial(materialInput);
@@ -3321,6 +3321,7 @@ export class ChevronArrowEdgeMaterialProperty implements Cesium.MaterialProperty
     }
 }
 
+/*
 export class ChevronArrowEdgeMaterialProperty_sandwichLine implements Cesium.MaterialProperty {
     private _arrowColor: Cesium.Property;
     private _dashColor: Cesium.Property;
@@ -3514,6 +3515,907 @@ export class ChevronArrowEdgeMaterialProperty_sandwichLine implements Cesium.Mat
     }
 }
 
+export class ChevronArrowEdgeMaterialProperty_sandwichLine implements Cesium.MaterialProperty {
+    private _arrowColor: Cesium.Property;
+    private _dashColor: Cesium.Property;
+    private _definitionChanged: Cesium.Event;
+
+    constructor(
+        arrowColor: Cesium.Color,
+        dashColor: Cesium.CallbackProperty
+    ) {
+        this._arrowColor = new Cesium.ConstantProperty(arrowColor);
+        this._dashColor = dashColor;
+        this._definitionChanged = new Cesium.Event();
+
+        if (!(Cesium.Material as any)._materialCache._materials["ChevronArrowEdgeMaterialProperty_sandwichLine"]) {
+            (Cesium.Material as any)._materialCache.addMaterial("ChevronArrowEdgeMaterialProperty_sandwichLine", {
+                fabric: {
+                    type: "ChevronArrowEdgeMaterialProperty_sandwichLine",
+                    uniforms: {
+                        arrowColor: Cesium.Color.WHITE,
+                        dashColor: Cesium.Color.fromBytes(239, 12, 249, 255),
+                        dashLength: 48.0,
+                        arrowLength: 12.0,
+                        minV: 0.30, // Alt sınır
+                        maxV: 0.70  // Üst sınır
+                    },
+                    source: `
+                        uniform vec4 arrowColor;
+                        uniform vec4 dashColor;
+                        uniform float dashLength;
+                        uniform float arrowLength;
+                        uniform float minV;
+                        uniform float maxV;
+                        in float v_polylineAngle;
+
+                        mat2 rotate(float rad) {
+                            float c = cos(rad);
+                            float s = sin(rad);
+                            return mat2(c, s, -s, c);
+                        }
+
+                        float modp(float x, float len) {
+                            float m = mod(x, len);
+                            return m < 0.0 ? m + len : m;
+                        }
+
+                        bool pointInParallelogram(vec2 p, vec2 topStart, vec2 bottomStart, vec2 topEnd) {
+                            vec2 v1 = bottomStart - topStart;
+                            vec2 v2 = topEnd - topStart;
+                            vec2 vP = p - topStart;
+
+                            float dot00 = dot(v1, v1);
+                            float dot01 = dot(v1, v2);
+                            float dot11 = dot(v2, v2);
+                            float dotP0 = dot(vP, v1);
+                            float dotP1 = dot(vP, v2);
+
+                            float denom = dot00 * dot11 - dot01 * dot01;
+                            if (denom == 0.0) return false;
+                            float u = (dot11 * dotP0 - dot01 * dotP1) / denom;
+                            float v = (dot00 * dotP1 - dot01 * dotP0) / denom;
+
+                            return (u >= 0.0) && (u <= 1.0) && (v >= 0.0) && (v <= 1.0);
+                        }
+
+                        float chevronMask(float u, float v) {
+                            float totalThickness = 0.6;
+                            float edgeThickness = 0.1;
+                            vec2 p = vec2(u, v);
+
+                            vec2 leftOuterTopStart = vec2(0.0, 1.0);
+                            vec2 leftOuterTopEnd = vec2(totalThickness, 1.0);
+                            vec2 leftOuterBottomStart = vec2(1.0 - totalThickness, 0.5);
+
+                            vec2 rightOuterTopStart = vec2(1.0 - totalThickness, 0.5);
+                            vec2 rightOuterTopEnd = vec2(1.0, 0.5);
+                            vec2 rightOuterBottomStart = vec2(0.0, 0.0);
+
+                            vec2 leftInnerTopStart = vec2(edgeThickness, 1.0 - edgeThickness);
+                            vec2 leftInnerTopEnd = vec2(totalThickness - edgeThickness, 1.0 - edgeThickness);
+                            vec2 leftInnerBottomStart = vec2(1.0 - totalThickness + edgeThickness, 0.5);
+
+                            vec2 rightInnerTopStart = vec2(1.0 - totalThickness + edgeThickness, 0.5);
+                            vec2 rightInnerTopEnd = vec2(1.0 - edgeThickness, 0.5);
+                            vec2 rightInnerBottomStart = vec2(edgeThickness, edgeThickness);
+
+                            bool inLeftOuter = pointInParallelogram(p, leftOuterTopStart, leftOuterBottomStart, leftOuterTopEnd);
+                            bool inRightOuter = pointInParallelogram(p, rightOuterTopStart, rightOuterBottomStart, rightOuterTopEnd);
+
+                            bool inLeftInner = pointInParallelogram(p, leftInnerTopStart, leftInnerBottomStart, leftInnerTopEnd);
+                            bool inRightInner = pointInParallelogram(p, rightInnerTopStart, rightInnerBottomStart, rightInnerTopEnd);
+
+                            if ((inLeftOuter || inRightOuter) && !(inLeftInner || inRightInner)) {
+                                return 2.0; // Sadece dışta
+                            }
+                            if (inLeftInner || inRightInner) {
+                                return 1.0; // İçte
+                            }
+                            return 0.0; // Hiçbirinde değil
+                        }
+
+                  czm_material czm_getMaterial(czm_materialInput materialInput) {
+                        czm_material material = czm_getDefaultMaterial(materialInput);
+                        vec2 st = materialInput.st;
+
+                        vec2 pos = rotate(v_polylineAngle) * gl_FragCoord.xy;
+                        float pixelDashLength  = max(dashLength  * czm_pixelRatio, 1.0);
+                        float pixelArrowLength = max(arrowLength * czm_pixelRatio, 1.0);
+                        float pixelSegmentLength = pixelDashLength + pixelArrowLength;
+
+                        float xInSeg = modp(pos.x, pixelSegmentLength);
+
+                        float inArrow = step(pixelDashLength, xInSeg);
+                        float u = clamp((xInSeg - pixelDashLength) / pixelArrowLength, 0.0, 1.0);
+                        float v = st.t;
+                        float mask = inArrow * chevronMask(u, v);
+
+                    vec4 dashCol = dashColor;
+                        vec4 arrowCol = arrowColor;
+                        vec4 blackCol = vec4(0.0, 0.0, 0.0, 1.0);
+                        
+                        // --- DİNAMİK YUMUŞATMA HESABI ---
+                        // fwidth(v), bir pikselden diğerine v'nin ne kadar değiştiğini verir.
+                        // Bu değer 1 piksele denk gelen v mesafesidir.
+                        float pixelRange = fwidth(v); 
+                        float smoothing = pixelRange * 1.5; // 1.5 piksellik bir yumuşatma alanı
+
+                        float midV = (minV + maxV) * 0.5;
+                        float stripeThickness = (maxV - minV) * 0.2;
+                        
+                        float bStart = midV - (stripeThickness * 0.5);
+                        float bEnd = midV + (stripeThickness * 0.5);
+
+                        // smoothstep ile dinamik pürüzsüzlük
+                        float blackFactor = smoothstep(bStart - smoothing, bStart, v) - smoothstep(bEnd, bEnd + smoothing, v);
+                        
+                        // Arka plan rengini belirle (Yeşil ve Siyah karışımı)
+                        vec4 baseColor = mix(dashCol, blackCol, blackFactor);
+                        
+                        // Genel Görünürlük (minV/maxV kesimi) - Bu da artık pürüzsüz
+                        float edgeAlpha = smoothstep(minV -smoothing, minV, v) * (1.0 - smoothstep(maxV, maxV + smoothing, v));
+                        baseColor.a *= edgeAlpha;
+
+                        // --- RENK BİRLEŞTİRME ---
+                        vec4 outColor = baseColor;
+                        if (mask == 1.0) {
+                            outColor = arrowCol;
+                        } else if (mask == 2.0) {
+                            outColor = blackCol;
+                        }
+
+                        if (mask == 0.0) {
+                            outColor.a = baseColor.a;
+                        }
+
+                        // Antialias ve Çıktı
+                        outColor = czm_antialias(vec4(0.0), outColor, outColor, min(st.t, 1.0 - st.t));
+                        outColor = czm_gammaCorrect(outColor);
+
+                        material.diffuse = outColor.rgb;
+                        material.alpha   = outColor.a;
+                        return material;
+                    }
+                    `
+                },
+                translucent: () => true
+            });
+        }
+    }
+
+    get isConstant(): boolean {
+        const ac = (this._arrowColor as any)?.isConstant ?? true;
+        const dc = (this._dashColor as any)?.isConstant ?? true;
+        return ac && dc;
+    }
+
+    get definitionChanged(): Cesium.Event { return this._definitionChanged; }
+    getType(_time: Cesium.JulianDate): string { return "ChevronArrowEdgeMaterialProperty_sandwichLine"; }
+
+    getValue(time: Cesium.JulianDate, result?: any): any {
+        if (!result) result = {};
+        result.arrowColor = this._arrowColor.getValue(time);
+        result.dashColor = this._dashColor.getValue(time);
+        return result;
+    }
+
+    equals(other: Cesium.MaterialProperty): boolean {
+        return (
+            other instanceof ChevronArrowEdgeMaterialProperty_sandwichLine &&
+            (other as any)._arrowColor?.equals?.(this._arrowColor) === true &&
+            (other as any)._dashColor?.equals?.(this._dashColor) === true
+        );
+    }
+}
+
+
+export class ChevronArrowEdgeMaterialProperty_sandwichLine implements Cesium.MaterialProperty {
+    private _arrowColor: Cesium.Property;
+    private _dashColor: Cesium.Property;
+    private _definitionChanged: Cesium.Event;
+
+    constructor(
+        arrowColor: Cesium.Color,
+        dashColor: Cesium.CallbackProperty
+    ) {
+        this._arrowColor = new Cesium.ConstantProperty(arrowColor);
+        this._dashColor = dashColor;
+        this._definitionChanged = new Cesium.Event();
+
+        if (!(Cesium.Material as any)._materialCache._materials["ChevronArrowEdgeMaterialProperty_sandwichLine"]) {
+            (Cesium.Material as any)._materialCache.addMaterial("ChevronArrowEdgeMaterialProperty_sandwichLine", {
+                fabric: {
+                    type: "ChevronArrowEdgeMaterialProperty_sandwichLine",
+                    uniforms: {
+                        arrowColor: Cesium.Color.WHITE,
+                        dashColor: Cesium.Color.fromBytes(239, 12, 249, 255),
+                        dashLength: 48.0,
+                        arrowLength: 12.0,
+                        minV: 0.30, 
+                        maxV: 0.70  
+                    },
+                    source: `
+                        uniform vec4 arrowColor;
+                        uniform vec4 dashColor;
+                        uniform float dashLength;
+                        uniform float arrowLength;
+                        uniform float minV;
+                        uniform float maxV;
+                        in float v_polylineAngle;
+
+                        mat2 rotate(float rad) {
+                            float c = cos(rad);
+                            float s = sin(rad);
+                            return mat2(c, s, -s, c);
+                        }
+
+                        float modp(float x, float len) {
+                            float m = mod(x, len);
+                            return m < 0.0 ? m + len : m;
+                        }
+
+                        // --- YENİ SDF CHEVRON MANTIĞI ---
+                        // Paralelkenarları birleştirmek yerine, mesafeyi matematiksel olarak hesaplıyoruz.
+                        void getChevronAlphas(float u, float foldV, float fwU, float fwV, out float alphaOuter, out float alphaInner) {
+                            // Dış Sınır (Siyah Çerçeve) Doğruları
+                            vec2 nOut = normalize(vec2(2.5, 1.0));
+                            float dOutLead = dot(vec2(u, foldV) - vec2(0.4, 0.0), nOut);
+                            float dOutTrail = dot(vec2(u, foldV) - vec2(1.0, 0.0), -nOut);
+                            
+                            // İç Sınır (Renkli Ok) Doğruları
+                            vec2 nInn = normalize(vec2(2.0, 1.0));
+                            float dInnLead = dot(vec2(u, foldV) - vec2(0.5, 0.0), nInn);
+                            float dInnTrail = dot(vec2(u, foldV) - vec2(0.9, 0.0), -nInn);
+                            
+                            // İç okun üst/alt uç noktalarını tıraşlama sınırı
+                            float dInnCap = 0.8 - foldV; 
+
+                            // Analitik fwidth: Piksel dalgalanmalarını engelleyen matematiksel pürüzsüzlük
+                            float fwOut = abs(nOut.x) * fwU + abs(nOut.y) * fwV;
+                            float fwInn = abs(nInn.x) * fwU + abs(nInn.y) * fwV;
+
+                            // Mesafelere göre pürüzsüz maske oluştur (Dış sınır ve İç ok için)
+                            alphaOuter = smoothstep(-fwOut, fwOut, dOutLead) * smoothstep(-fwOut, fwOut, dOutTrail);
+                            alphaInner = smoothstep(-fwInn, fwInn, dInnLead) * smoothstep(-fwInn, fwInn, dInnTrail) * smoothstep(-fwV, fwV, dInnCap);
+                        }
+
+                        czm_material czm_getMaterial(czm_materialInput materialInput) {
+                            czm_material material = czm_getDefaultMaterial(materialInput);
+                            vec2 st = materialInput.st;
+
+                            vec2 pos = rotate(v_polylineAngle) * gl_FragCoord.xy;
+                            float pixelDashLength  = max(dashLength  * czm_pixelRatio, 1.0);
+                            float pixelArrowLength = max(arrowLength * czm_pixelRatio, 1.0);
+                            float pixelSegmentLength = pixelDashLength + pixelArrowLength;
+
+                            float xInSeg = modp(pos.x, pixelSegmentLength);
+
+                            // Chevron Ok kısmında mıyız? (Burayı da yumuşattık)
+                            float fwX = max(fwidth(pos.x), 1e-5) * 1.5;
+                            float inArrow = smoothstep(pixelDashLength - fwX, pixelDashLength + fwX, xInSeg);
+
+                            // Koordinatları Chevron için hazırla
+                            float u = clamp((xInSeg - pixelDashLength) / pixelArrowLength, 0.0, 1.0);
+                            float v = st.t;
+                            
+                            // Y eksenini ortadan ikiye katla (Simetri! Seam/Ortadaki yırtık sorununu çözer)
+                            float foldV = abs(v - 0.5) * 2.0;
+                            
+                            // Piksel türevleri
+                            float fwU = max(fwidth(pos.x) / pixelArrowLength, 1e-5) * 1.5;
+                            float fwV = max(fwidth(v) * 2.0, 1e-5) * 1.5;
+
+                            // Alphas
+                            float alphaOuter, alphaInner;
+                            getChevronAlphas(u, foldV, fwU, fwV, alphaOuter, alphaInner);
+                            
+                            // Ok bölgesinin dışında kalan kısımları sıfırla
+                            alphaOuter *= inArrow;
+                            alphaInner *= inArrow;
+
+                            vec4 dashCol = dashColor;
+                            vec4 arrowCol = arrowColor;
+                            vec4 blackCol = vec4(0.0, 0.0, 0.0, 1.0);
+                            
+                            // --- SANDWİÇ ÇİZGİ ARKA PLAN HESABI ---
+                            float pixelRange = max(fwidth(v), 1e-5); 
+                            float smoothing = pixelRange * 1.5; 
+                            float midV = (minV + maxV) * 0.5;
+                            float stripeThickness = (maxV - minV) * 0.2;
+                            float bStart = midV - (stripeThickness * 0.5);
+                            float bEnd = midV + (stripeThickness * 0.5);
+
+                            float blackFactor = smoothstep(bStart - smoothing, bStart, v) - smoothstep(bEnd, bEnd + smoothing, v);
+                            vec4 baseColor = mix(dashCol, blackCol, blackFactor);
+                            
+                            float edgeAlpha = smoothstep(minV - smoothing, minV, v) * (1.0 - smoothstep(maxV, maxV + smoothing, v));
+                            baseColor.a *= edgeAlpha;
+
+                            // --- KATMANLI RENK BİRLEŞTİRME ---
+                            vec4 outColor = baseColor;
+                            
+                            // 1. Önce dış siyah çerçeveyi (Outer) arka planın üstüne bindir
+                            outColor = mix(outColor, blackCol, alphaOuter);
+                            
+                            // 2. Sonra iç renkli oku (Inner) siyah çerçevenin üstüne bindir
+                            outColor = mix(outColor, arrowCol, alphaInner);
+
+                            // Cesium Antialias ve Çıktı
+                            outColor = czm_antialias(vec4(0.0), outColor, outColor, min(st.t, 1.0 - st.t));
+                            outColor = czm_gammaCorrect(outColor);
+
+                            material.diffuse = outColor.rgb;
+                            material.alpha   = outColor.a;
+                            return material;
+                        }
+                    `
+                },
+                translucent: () => true
+            });
+        }
+    }
+
+    get isConstant(): boolean {
+        const ac = (this._arrowColor as any)?.isConstant ?? true;
+        const dc = (this._dashColor as any)?.isConstant ?? true;
+        return ac && dc;
+    }
+
+    get definitionChanged(): Cesium.Event { return this._definitionChanged; }
+    getType(_time: Cesium.JulianDate): string { return "ChevronArrowEdgeMaterialProperty_sandwichLine"; }
+
+    getValue(time: Cesium.JulianDate, result?: any): any {
+        if (!result) result = {};
+        result.arrowColor = this._arrowColor.getValue(time);
+        result.dashColor = this._dashColor.getValue(time);
+        return result;
+    }
+
+    equals(other: Cesium.MaterialProperty): boolean {
+        return (
+            other instanceof ChevronArrowEdgeMaterialProperty_sandwichLine &&
+            (other as any)._arrowColor?.equals?.(this._arrowColor) === true &&
+            (other as any)._dashColor?.equals?.(this._dashColor) === true
+        );
+    }
+}
+*/
+// 3b kay da denedim
+
+export class ChevronArrowEdgeMaterialProperty_sandwichLine implements Cesium.MaterialProperty {
+    private _arrowColor: Cesium.Property;
+    private _dashColor: Cesium.Property;
+    private _definitionChanged: Cesium.Event;
+
+    constructor(
+        arrowColor: Cesium.Color,
+        dashColor: Cesium.CallbackProperty
+    ) {
+        this._arrowColor = new Cesium.ConstantProperty(arrowColor);
+        this._dashColor = dashColor;
+        this._definitionChanged = new Cesium.Event();
+
+        if (!(Cesium.Material as any)._materialCache._materials["ChevronArrowEdgeMaterialProperty_sandwichLine"]) {
+            (Cesium.Material as any)._materialCache.addMaterial("ChevronArrowEdgeMaterialProperty_sandwichLine", {
+                fabric: {
+                    type: "ChevronArrowEdgeMaterialProperty_sandwichLine",
+                    uniforms: {
+                        arrowColor: Cesium.Color.WHITE,
+                        dashColor: Cesium.Color.fromBytes(239, 12, 249, 255),
+                        dashLength: 100.0,
+                        arrowLength: 25.0,
+                        minV: 0.30, 
+                        maxV: 0.70 ,
+                        middleDashColor : Cesium.Color.AQUA
+                    },
+                    source: `
+                        uniform vec4 arrowColor;
+                        uniform vec4 dashColor;
+                        uniform vec4 middleDashColor;
+                        uniform float dashLength;
+                        uniform float arrowLength;
+                        uniform float minV;
+                        uniform float maxV;
+                        in float v_polylineAngle;
+
+                        mat2 rotate(float rad) {
+                            float c = cos(rad);
+                            float s = sin(rad);
+                            return mat2(c, s, -s, c);
+                        }
+
+                        float modp(float x, float len) {
+                            float m = mod(x, len);
+                            return m < 0.0 ? m + len : m;
+                        }
+
+                        czm_material czm_getMaterial(czm_materialInput materialInput) {
+                            czm_material material = czm_getDefaultMaterial(materialInput);
+                            vec2 st = materialInput.st;
+
+                            vec2 pos = rotate(v_polylineAngle) * gl_FragCoord.xy;
+                            float pixelDashLength  = max(dashLength  * czm_pixelRatio, 1.0);
+                            float pixelArrowLength = max(arrowLength * czm_pixelRatio, 1.0);
+                            float pixelSegmentLength = pixelDashLength + pixelArrowLength;
+
+                            float xInSeg = modp(pos.x, pixelSegmentLength);
+
+                            float fwX = max(fwidth(pos.x), 1e-5);
+                            float blurX = fwX * 0.5;
+                            float inArrow = smoothstep(pixelDashLength - blurX, pixelDashLength + blurX, xInSeg);
+
+                            float u = clamp((xInSeg - pixelDashLength) / pixelArrowLength, 0.0, 1.0);
+                            float v = st.t;
+                            
+                            float foldV = abs(v - 0.5) * 2.0;
+                            
+                            // ==========================================
+                            // BÜYÜK DÜZELTME: Türev zıplaması (Artifact)
+                            // fwidth(u) yaparsak, u'nun başa sardığı (1.0 -> 0.0) noktada GPU 
+                            // devasa bir türev hesaplar ve ekranı inanılmaz derecede blur'lar. 
+                            // Bu da senin gördüğün o 'ince dikey çizgi' artifact'ini oluşturuyordu.
+                            // Çözüm: u'nun türevini, sürekli olan pos.x üzerinden fiziksel olarak bulmak.
+                            float fwU = max(fwX / pixelArrowLength, 1e-5); 
+                            float fwV = max(fwidth(v) * 2.0, 1e-5); 
+                            
+                            float blurU = fwU * 0.5; 
+                            float blurV = fwV * 0.5;
+
+                            // ==========================================
+                            // 1D ANALİTİK CHEVRON (KUSURSUZ PARALELLİK)
+                            // ==========================================
+                            // BÜYÜK DÜZELTME 1: Tüm çizgiler aynı eğime (0.4) sahip!
+                            float slope = 0.4; 
+
+                            // Dış Sınırlar (Kalınlık = 0.6)
+                            float leftOutU  = 0.4 - slope * foldV;
+                            float rightOutU = 1.0 - slope * foldV;
+                            
+                            // İç Sınırlar (Soldan ve Sağdan tam 0.1 birim içeride)
+                            float leftInnU  = 0.6 - slope * foldV;
+                            float rightInnU = 0.8 - slope * foldV;
+
+                            // sol sınırdan sonra 0→1 geçiş (sol kenar), sağ sınırdan sonra 1→0 geçiş (sağ kenar) 
+                            float outerU = smoothstep(leftOutU - blurU, leftOutU + blurU, u) * (1.0 - smoothstep(rightOutU - blurU, rightOutU + blurU, u));
+                            float innerU = smoothstep(leftInnU - blurU, leftInnU + blurU, u) * (1.0 - smoothstep(rightInnU - blurU, rightInnU + blurU, u));
+                            
+                            // BÜYÜK DÜZELTME 2: Uç kesiğini SADECE iç oka uyguluyoruz.
+                            // Dış siyah çerçeve foldV=1.0 (en tepeye) kadar çıkıyor.
+                            float innerCapV = 1.0 - smoothstep(0.7 - blurV, 0.7 + blurV, foldV);
+
+                            // Dış çerçeve serbest, iç ok tepeden (0.8) tıraşlı.
+                            // Dış sınır maskesi × ok bölgesinde mi. Boşluk bölgesinde her şey sıfırlanır.
+                            float alphaOuter = outerU * inArrow;
+                            // İç dolgu maskesi × uç tıraşlama × ok bölgesinde mi.
+                            float alphaInner = innerU * innerCapV * inArrow;
+
+                            vec4 dashCol = dashColor;
+                            vec4 arrowCol = arrowColor;
+                            vec4 blackCol = vec4(0.0, 0.0, 0.0, 1.0);
+                            
+                            // --- ARKA PLAN (Sandviç Çizgi) ---
+                            float blurZemin = max(fwidth(v), 1e-5) * 0.5;
+                            float midV = (minV + maxV) * 0.5;
+                            float stripeThickness = (maxV - minV) * 0.2;
+                            float bStart = midV - (stripeThickness * 0.5);
+                            float bEnd = midV + (stripeThickness * 0.5);
+
+                            float blackFactor = smoothstep(bStart - blurZemin, bStart + blurZemin, v) - smoothstep(bEnd - blurZemin, bEnd + blurZemin, v);
+                            vec4 baseColor = mix(dashCol, middleDashColor, blackFactor);
+                            
+                            float edgeAlpha = smoothstep(minV - blurZemin, minV + blurZemin, v) * (1.0 - smoothstep(maxV - blurZemin, maxV + blurZemin, v));
+                            baseColor.a *= edgeAlpha;
+
+                            // --- KATMANLI RENK BİRLEŞTİRME --
+                            // alphaOuter=0, alphaInner=0 : arka plan şerit
+                            // alphaOuter=1, alphaInner=0 : ok dis kenar
+                            // alphaOuter=1, alphaInner=1 : ok ic dolgu
+                            vec4 outColor = baseColor;
+                            outColor = mix(outColor, blackCol, alphaOuter); 
+                            outColor = mix(outColor, arrowCol, alphaInner); 
+
+                            outColor = czm_gammaCorrect(outColor);
+
+                            material.diffuse = outColor.rgb;
+                            material.alpha   = outColor.a;
+                            return material;
+                        }
+                    `
+                },
+                translucent: () => true
+            });
+        }
+    }
+
+    get isConstant(): boolean {
+        const ac = (this._arrowColor as any)?.isConstant ?? true;
+        const dc = (this._dashColor as any)?.isConstant ?? true;
+        return ac && dc;
+    }
+
+    get definitionChanged(): Cesium.Event { return this._definitionChanged; }
+    getType(_time: Cesium.JulianDate): string { return "ChevronArrowEdgeMaterialProperty_sandwichLine"; }
+
+    getValue(time: Cesium.JulianDate, result?: any): any {
+        if (!result) result = {};
+        result.arrowColor = this._arrowColor.getValue(time);
+        result.dashColor = this._dashColor.getValue(time);
+        return result;
+    }
+
+    equals(other: Cesium.MaterialProperty): boolean {
+        return (
+            other instanceof ChevronArrowEdgeMaterialProperty_sandwichLine &&
+            (other as any)._arrowColor?.equals?.(this._arrowColor) === true &&
+            (other as any)._dashColor?.equals?.(this._dashColor) === true
+        );
+    }
+}
+
+export class ChevronArrowEdgeMaterialProperty_kesik_serit implements Cesium.MaterialProperty {
+    private _arrowColor: Cesium.Property;
+    private _dashColor: Cesium.Property;
+    private _definitionChanged: Cesium.Event;
+
+    constructor(
+        arrowColor: Cesium.Color,
+        dashColor: Cesium.CallbackProperty
+    ) {
+        this._arrowColor = new Cesium.ConstantProperty(arrowColor);
+        this._dashColor = dashColor;
+        this._definitionChanged = new Cesium.Event();
+
+        if (!(Cesium.Material as any)._materialCache._materials["ChevronArrowEdgeMaterialProperty_kesik_serit"]) {
+            (Cesium.Material as any)._materialCache.addMaterial("ChevronArrowEdgeMaterialProperty_kesik_serit", {
+                fabric: {
+                    type: "ChevronArrowEdgeMaterialProperty_kesik_serit",
+                    uniforms: {
+                        arrowColor: Cesium.Color.WHITE,
+                        dashColor: Cesium.Color.fromBytes(239, 12, 249, 255),
+                        dashLength: 100.0,
+                        arrowLength: 25.0,
+                        minV: 0.30, 
+                        maxV: 0.70,
+                        middleDashColor: Cesium.Color.BLACK,
+                        middleDashLength: 30.0, // Çizgi + Boşluk toplam periyot uzunluğu
+                        middleDashOnLength: 15.0 // Sadece çizginin görüneceği dolu kısım
+                    },
+                    source: `
+                        uniform vec4 arrowColor;
+                        uniform vec4 dashColor;
+                        uniform vec4 middleDashColor;
+                        uniform float dashLength;
+                        uniform float arrowLength;
+                        uniform float minV;
+                        uniform float maxV;
+                        uniform float middleDashLength;
+                        uniform float middleDashOnLength;
+                        in float v_polylineAngle;
+
+                        mat2 rotate(float rad) {
+                            float c = cos(rad);
+                            float s = sin(rad);
+                            return mat2(c, s, -s, c);
+                        }
+
+                        float modp(float x, float len) {
+                            float m = mod(x, len);
+                            return m < 0.0 ? m + len : m;
+                        }
+
+                        czm_material czm_getMaterial(czm_materialInput materialInput) {
+                            czm_material material = czm_getDefaultMaterial(materialInput);
+                            vec2 st = materialInput.st;
+
+                            vec2 pos = rotate(v_polylineAngle) * gl_FragCoord.xy;
+                            float pixelDashLength  = max(dashLength  * czm_pixelRatio, 1.0);
+                            float pixelArrowLength = max(arrowLength * czm_pixelRatio, 1.0);
+                            float pixelSegmentLength = pixelDashLength + pixelArrowLength;
+
+                            float xInSeg = modp(pos.x, pixelSegmentLength);
+
+                            float fwX = max(fwidth(pos.x), 1e-5);
+                            float blurX = fwX * 0.5;
+                            float inArrow = smoothstep(pixelDashLength - blurX, pixelDashLength + blurX, xInSeg) * (1.0 - smoothstep(pixelSegmentLength - blurX, pixelSegmentLength + blurX, xInSeg));
+
+                            float u = clamp((xInSeg - pixelDashLength) / pixelArrowLength, 0.0, 1.0);
+                            float v = st.t;
+                            
+                            float foldV = abs(v - 0.5) * 2.0;
+                            
+                            float fwU = max(fwX / pixelArrowLength, 1e-5); 
+                            float fwV = max(fwidth(v) * 2.0, 1e-5); 
+                            
+                            float blurU = fwU * 0.5; 
+                            float blurV = fwV * 0.5;
+
+                            // ==========================================
+                            // 1D ANALİTİK CHEVRON (KUSURSUZ PARALELLİK)
+                            // ==========================================
+                            float slope = 0.4; 
+
+                            // Dış Sınırlar (Kalınlık = 0.6)
+                            float leftOutU  = 0.4 - slope * foldV;
+                            float rightOutU = 1.0 - slope * foldV;
+                            
+                            // İç Sınırlar (Soldan ve Sağdan tam 0.1 birim içeride)
+                            float leftInnU  = 0.6 - slope * foldV;
+                            float rightInnU = 0.8 - slope * foldV;
+
+                            // sol sınırdan sonra 0→1 geçiş (sol kenar), sağ sınırdan sonra 1→0 geçiş (sağ kenar) 
+                            float outerU = smoothstep(leftOutU - blurU, leftOutU + blurU, u) * (1.0 - smoothstep(rightOutU - blurU, rightOutU + blurU, u));
+                            float innerU = smoothstep(leftInnU - blurU, leftInnU + blurU, u) * (1.0 - smoothstep(rightInnU - blurU, rightInnU + blurU, u));
+                            
+                            // BÜYÜK DÜZELTME 2: Uç kesiğini SADECE iç oka uyguluyoruz.
+                            float innerCapV = 1.0 - smoothstep(0.7 - blurV, 0.7 + blurV, foldV);
+
+                            // Dış sınır maskesi × ok bölgesinde mi.
+                            float alphaOuter = outerU * inArrow;
+                            // İç dolgu maskesi × uç tıraşlama × ok bölgesinde mi.
+                            float alphaInner = innerU * innerCapV * inArrow;
+
+                            vec4 dashCol = dashColor;
+                            vec4 arrowCol = arrowColor;
+                            vec4 blackCol = vec4(0.0, 0.0, 0.0, 1.0);
+                            
+                            // --- ARKA PLAN (Kesikli Şerit) ---
+                            float blurZemin = max(fwidth(v), 1e-5) * 0.5;
+                            float midV = (minV + maxV) * 0.5;
+                            float stripeThickness = (maxV - minV) * 0.2;
+                            float bStart = midV - (stripeThickness * 0.5);
+                            float bEnd = midV + (stripeThickness * 0.5);
+
+                            // 1. Orta şeridin dikey (v eksenindeki) kalınlık maskesi
+                            float verticalStripeMask = smoothstep(bStart - blurZemin, bStart + blurZemin, v) - smoothstep(bEnd - blurZemin, bEnd + blurZemin, v);
+
+                            // 2. Orta şeridin yatay (x eksenindeki) kesikli çizgi maskesi
+                            float pixelMiddleDashLength = max(middleDashLength * czm_pixelRatio, 1.0);
+                            float pixelMiddleDashOnLength = max(middleDashOnLength * czm_pixelRatio, 1.0);
+                            float xInMiddleDash = modp(pos.x, pixelMiddleDashLength);
+                            
+                            // Yatay düzlemde trafik işaretleri gibi yola aralıklarla şerit çiziyoruz
+                            float horizontalStripeMask = 1.0 - smoothstep(pixelMiddleDashOnLength - blurX, pixelMiddleDashOnLength + blurX, xInMiddleDash);
+
+                            // İkisinin çarpımı tam olarak kesik kesik bir şerit verir
+                            float finalStripeFactor = verticalStripeMask * horizontalStripeMask;
+
+                            vec4 baseColor = mix(dashCol, middleDashColor, finalStripeFactor);
+                            
+                            float edgeAlpha = smoothstep(minV - blurZemin, minV + blurZemin, v) * (1.0 - smoothstep(maxV - blurZemin, maxV + blurZemin, v));
+                            baseColor.a *= edgeAlpha;
+
+                            // --- KATMANLI RENK BİRLEŞTİRME --
+                            vec4 outColor = baseColor;
+                            outColor = mix(outColor, blackCol, alphaOuter); 
+                            outColor = mix(outColor, arrowCol, alphaInner); 
+
+                            outColor = czm_gammaCorrect(outColor);
+
+                            material.diffuse = outColor.rgb;
+                            material.alpha   = outColor.a;
+                            return material;
+                        }
+                    `
+                },
+                translucent: () => true
+            });
+        }
+    }
+
+    get isConstant(): boolean {
+        const ac = (this._arrowColor as any)?.isConstant ?? true;
+        const dc = (this._dashColor as any)?.isConstant ?? true;
+        return ac && dc;
+    }
+
+    get definitionChanged(): Cesium.Event { return this._definitionChanged; }
+    getType(_time: Cesium.JulianDate): string { return "ChevronArrowEdgeMaterialProperty_kesik_serit"; }
+
+    getValue(time: Cesium.JulianDate, result?: any): any {
+        if (!result) result = {};
+        result.arrowColor = this._arrowColor.getValue(time);
+        result.dashColor = this._dashColor.getValue(time);
+        return result;
+    }
+
+    equals(other: Cesium.MaterialProperty): boolean {
+        return (
+            other instanceof ChevronArrowEdgeMaterialProperty_kesik_serit &&
+            (other as any)._arrowColor?.equals?.(this._arrowColor) === true &&
+            (other as any)._dashColor?.equals?.(this._dashColor) === true
+        );
+    }
+}
+
+export class ChevronArrowEdgeMaterialProperty_kesik_serit_mesafeli implements Cesium.MaterialProperty {
+    private _arrowColor: Cesium.Property;
+    private _dashColor: Cesium.Property;
+    private _definitionChanged: Cesium.Event;
+
+    constructor(
+        arrowColor: Cesium.Color,
+        dashColor: Cesium.CallbackProperty
+    ) {
+        this._arrowColor = new Cesium.ConstantProperty(arrowColor);
+        this._dashColor = dashColor;
+        this._definitionChanged = new Cesium.Event();
+
+        if (!(Cesium.Material as any)._materialCache._materials["ChevronArrowEdgeMaterialProperty_kesik_serit_mesafeli"]) {
+            (Cesium.Material as any)._materialCache.addMaterial("ChevronArrowEdgeMaterialProperty_kesik_serit_mesafeli", {
+                fabric: {
+                    type: "ChevronArrowEdgeMaterialProperty_kesik_serit_mesafeli",
+                    uniforms: {
+                        arrowColor: Cesium.Color.WHITE,
+                        dashColor: Cesium.Color.fromBytes(239, 12, 249, 255),
+                        dashLength: 100.0,
+                        arrowLength: 25.0,
+                        minV: 0.30, 
+                        maxV: 0.70,
+                        middleDashColor: Cesium.Color.BLACK,
+                        dashCount: 4.0 // 3 ise 7 parçaya (3 çizgi 4 boşluk), 2 ise 5 parçaya böler.
+                    },
+                    source: `
+                        uniform vec4 arrowColor;
+                        uniform vec4 dashColor;
+                        uniform vec4 middleDashColor;
+                        uniform float dashLength;
+                        uniform float arrowLength;
+                        uniform float minV;
+                        uniform float maxV;
+                        uniform float dashCount; // Kaç adet kesikli çizgi istendiği
+                        in float v_polylineAngle;
+
+                        mat2 rotate(float rad) {
+                            float c = cos(rad);
+                            float s = sin(rad);
+                            return mat2(c, s, -s, c);
+                        }
+
+                        float modp(float x, float len) {
+                            float m = mod(x, len);
+                            return m < 0.0 ? m + len : m;
+                        }
+
+                        czm_material czm_getMaterial(czm_materialInput materialInput) {
+                            czm_material material = czm_getDefaultMaterial(materialInput);
+                            vec2 st = materialInput.st;
+
+                            vec2 pos = rotate(v_polylineAngle) * gl_FragCoord.xy;
+                            float pixelDashLength  = max(dashLength  * czm_pixelRatio, 1.0);
+                            float pixelArrowLength = max(arrowLength * czm_pixelRatio, 1.0);
+                            float pixelSegmentLength = pixelDashLength + pixelArrowLength;
+
+                            float xInSeg = modp(pos.x, pixelSegmentLength);
+
+                            float fwX = max(fwidth(pos.x), 1e-5);
+                            float blurX = fwX * 0.5;
+                            float inArrow = smoothstep(pixelDashLength - blurX, pixelDashLength + blurX, xInSeg) * (1.0 - smoothstep(pixelSegmentLength - blurX, pixelSegmentLength + blurX, xInSeg));
+
+                            float u = clamp((xInSeg - pixelDashLength) / pixelArrowLength, 0.0, 1.0);
+                            float v = st.t;
+                            
+                            float foldV = abs(v - 0.5) * 2.0;
+                            
+                            float fwU = max(fwX / pixelArrowLength, 1e-5); 
+                            float fwV = max(fwidth(v) * 2.0, 1e-5); 
+                            
+                            float blurU = fwU * 0.5; 
+                            float blurV = fwV * 0.5;
+
+                            // ==========================================
+                            // 1D ANALİTİK CHEVRON (KUSURSUZ PARALELLİK)
+                            float slope = 0.4; 
+
+                            float leftOutU  = 0.4 - slope * foldV;
+                            float rightOutU = 1.0 - slope * foldV;
+                            
+                            float leftInnU  = 0.6 - slope * foldV;
+                            float rightInnU = 0.8 - slope * foldV;
+
+                            float outerU = smoothstep(leftOutU - blurU, leftOutU + blurU, u) * (1.0 - smoothstep(rightOutU - blurU, rightOutU + blurU, u));
+                            float innerU = smoothstep(leftInnU - blurU, leftInnU + blurU, u) * (1.0 - smoothstep(rightInnU - blurU, rightInnU + blurU, u));
+                            
+                            float innerCapV = 1.0 - smoothstep(0.7 - blurV, 0.7 + blurV, foldV);
+
+                            float alphaOuter = outerU * inArrow;
+                            float alphaInner = innerU * innerCapV * inArrow;
+
+                            vec4 dashCol = dashColor;
+                            vec4 arrowCol = arrowColor;
+                            vec4 blackCol = vec4(0.0, 0.0, 0.0, 1.0);
+                            
+                            // --- ARKA PLAN (Kesikli Şerit) ---
+                            float blurZemin = max(fwidth(v), 1e-5) * 0.5;
+                            float midV = (minV + maxV) * 0.5;
+                            float stripeThickness = (maxV - minV) * 0.4;
+                            float bStart = midV - (stripeThickness * 0.5);
+                            float bEnd = midV + (stripeThickness * 0.5);
+
+                            // Orta şeridin v eksenindeki dikey sınırları
+                            float verticalStripeMask = smoothstep(bStart - blurZemin, bStart + blurZemin, v) - smoothstep(bEnd - blurZemin, bEnd + blurZemin, v);
+
+                            // ==========================================
+                            // 2N+1 MATEMATİK YÖNTEMİ (Statik Rakam Yok, Tam Oran)
+                            // ==========================================
+                            // GÖRSEL BOŞLUK HESABI (HARİKA DETAY!):
+                            // Okun kuyruğu düz bir duvar değil, "V" şeklinde içeri kıvrıktır.
+                            // Merkez eksende (v=0.5) ok u=0.4'ten itibaren çizilmeye başlar.
+                            // Bu da pixelDashLength sınırına ek olarak merkeze doğru (0.4 * pixelArrowLength) 
+                            // kadar ekstra görsel boşluk yaratır. Gerçek boşluk bu ikisinin toplamıdır!
+                            float visualGap = pixelDashLength + 0.4 * pixelArrowLength;
+
+                            // Eğer N (dashCount) = 3 ise N tane çizgi, N+1 tane boşluk olur (Toplam 7 eşit parça).
+                            float dCount = max(floor(dashCount), 1.0); 
+                            float totalParts = 2.0 * dCount + 1.0;
+                            
+                            // İşte şimdi iki ok arasındaki bu GERÇEK GÖRSEL ALANI 7 eşit parçaya bölüyoruz:
+                            float unitLength = visualGap / totalParts;
+
+                            // Kaydırma ve modüler mesafe
+                            float x_shifted = xInSeg - 0.5 * unitLength;
+                            float m = modp(x_shifted, 2.0 * unitLength);
+                            float distToDashEdge = 0.5 * unitLength - abs(m - unitLength);
+                            
+                            // Maske çizgileri çizer.
+                            // inArrow makaslaması İPTAL EDİLMİŞTİR!
+                            // Neden? Çünkü matematiğimiz o kadar kusursuz ki, 4. çizgiyi (ok alanına sızan çizgiyi)
+                            // tam mili milimetresine okun gövdesinin (alphaOuter) başladığı yere denk getirir!
+                            // Okun kendi katmanı, onun üzerine çizilip o istenmeyen 4. çizgiyi zaten yutacaktır.
+                            float horizontalStripeMask = smoothstep(-blurX, blurX, distToDashEdge);
+
+                            // Dikey kalınlıkla kesişimi tam bir kesikli çizgiyi verir.
+                            float finalStripeFactor = verticalStripeMask * horizontalStripeMask;
+
+                            vec4 baseColor = mix(dashCol, middleDashColor, finalStripeFactor);
+                            
+                            float edgeAlpha = smoothstep(minV - blurZemin, minV + blurZemin, v) * (1.0 - smoothstep(maxV - blurZemin, maxV + blurZemin, v));
+                            baseColor.a *= edgeAlpha;
+
+                            // --- KATMANLI RENK BİRLEŞTİRME --
+                            vec4 outColor = baseColor;
+                            outColor = mix(outColor, blackCol, alphaOuter); 
+                            outColor = mix(outColor, arrowCol, alphaInner); 
+
+                            outColor = czm_gammaCorrect(outColor);
+
+                            material.diffuse = outColor.rgb;
+                            material.alpha   = outColor.a;
+                            return material;
+                        }
+                    `
+                },
+                translucent: () => true
+            });
+        }
+    }
+
+    get isConstant(): boolean {
+        const ac = (this._arrowColor as any)?.isConstant ?? true;
+        const dc = (this._dashColor as any)?.isConstant ?? true;
+        return ac && dc;
+    }
+
+    get definitionChanged(): Cesium.Event { return this._definitionChanged; }
+    getType(_time: Cesium.JulianDate): string { return "ChevronArrowEdgeMaterialProperty_kesik_serit_mesafeli"; }
+
+    getValue(time: Cesium.JulianDate, result?: any): any {
+        if (!result) result = {};
+        result.arrowColor = this._arrowColor.getValue(time);
+        result.dashColor = this._dashColor.getValue(time);
+        return result;
+    }
+
+    equals(other: Cesium.MaterialProperty): boolean {
+        return (
+            other instanceof ChevronArrowEdgeMaterialProperty_kesik_serit_mesafeli &&
+            (other as any)._arrowColor?.equals?.(this._arrowColor) === true &&
+            (other as any)._dashColor?.equals?.(this._dashColor) === true
+        );
+    }
+}
+
+
 export class ChevronDoubleArrowEdgeMaterialProperty implements Cesium.MaterialProperty {
     private _arrowColor: Cesium.Property;
     private _dashColor: Cesium.Property;
@@ -3586,10 +4488,10 @@ export class ChevronDoubleArrowEdgeMaterialProperty implements Cesium.MaterialPr
 
                             // İlk chevron (sol)
                             float chevron1Start = 0.1;
-                            float chevron1End = 0.6;
+                            float chevron1End = 0.5;
 
                             // İkinci chevron (sağ)
-                            float chevron2Start = 0.4;
+                            float chevron2Start = 0.5;
                             float chevron2End = 0.9;
 
                             // --- 1. Chevron paralelkenarları ---
@@ -3976,5 +4878,659 @@ export class ArrowEdgeMaterialProperty_Kusursuz implements Cesium.MaterialProper
 
     equals(other: Cesium.MaterialProperty): boolean {
         return this === other;
+    }
+}
+
+
+// ============================================================================
+// HİBRİT MATERYAL: UV yerleşimi + Ekran-piksel şekli + CPU-güdümlü zoom ölçekleme
+// ============================================================================
+//
+// ÖNCEKİ YAKLAŞIMLARIN SORUNLARI:
+// ─────────────────────────────────
+// Çözüm 1 (Ekran-Uzayı / gl_FragCoord):
+//   - Oklar perspektiften bağımsız, piksel-mükemmel çiziliyor (Gereksinim 3 ✓)
+//   - AMA: Harita kaydırıldığında (pan) oklar çizgiye yapışmıyor, kayıyor (Gereksinim 2 ✗)
+//   - AMA: Zoom değiştiğinde ok sayısı sabit kalıyor (Gereksinim 4 ✗)
+//
+// Çözüm 2 (Dünya-Uzayı / materialInput.st.s):
+//   - Oklar dünyaya sabitlenmiş, pan'de kaymıyor (Gereksinim 2 ✓)
+//   - CPU'dan repeatCount hesaplanarak zoom'da dinamik ölçekleniyor (Gereksinim 4 ✓)
+//   - AMA: UV koordinatları perspektifle sıkışıp genişlediğinden ok şekilleri bozuluyor (Gereksinim 3 ✗)
+//
+// HİBRİT ÇÖZÜM:
+// ──────────────
+// "Oklar NEREDE çizilsin?" sorusunu UV (dünya-uzayı) ile,
+// "Oklar NASIL görünsün?" sorusunu gl_FragCoord (ekran-uzayı) ile yanıtlıyoruz.
+//
+// Bu sayede tüm 4 gereksinim aynı anda sağlanıyor:
+//   1. Eşit dağılım     → repeatCount UV'yi eşit hücrelere böler
+//   2. Pan sabitleme     → Okların konumu materialInput.st.s ile belirlenir (dünyaya çakılı)
+//   3. Perspektif bütünlüğü → Ok şekli gl_FragCoord ile çizilir (piksel-mükemmel)
+//   4. Dinamik ölçekleme → CPU her karede repeatCount'u yeniden hesaplar
+// ============================================================================
+export class ArrowEdgeMaterialPropertyHybrid implements Cesium.MaterialProperty {
+    // ── TypeScript Sınıf Üyeleri ──
+    // Cesium'un MaterialProperty arayüzünü implemente ediyoruz.
+    // Bu sınıf, Cesium'un her karede (frame) çağırdığı getValue() metodu ile
+    // GPU'ya (shader'a) uniform değişkenleri ileten bir köprü görevi görür.
+
+    private _arrowColor: Cesium.Property;       // Ok şeklinin rengi (beyaz vb.)
+    private _dashColor: Cesium.Property;         // Çizgi (dash) arka plan rengi (mor vb.)
+    private _dashPixels: number;                 // Bir desen hücresindeki çizgi kısmının piksel uzunluğu (örn: 115px)
+    private _arrowPixels: number;                // Bir desen hücresindeki ok kısmının piksel uzunluğu (örn: 35px)
+    private _totalLengthMeters: number;          // Polyline'ın toplam gerçek dünya uzunluğu (metre)
+    private _scene: Cesium.Scene;                // Cesium sahne objesi (kamera bilgilerine erişim için)
+    private _definitionChanged: Cesium.Event;    // Cesium'un materyal değişikliğini dinlediği olay
+
+    constructor(
+        arrowColor: Cesium.Color,
+        dashColor: Cesium.Property,              // CallbackProperty veya ConstantProperty olabilir
+        scene: Cesium.Scene,
+        totalLengthMeters: number,               // Rotanın CPU'da hesaplanan toplam metre uzunluğu
+        dashPixels: number = 115.0,              // Varsayılan: 115 piksellik çizgi boşluğu
+        arrowPixels: number = 35.0               // Varsayılan: 35 piksellik ok şekli
+    ) {
+        this._arrowColor = new Cesium.ConstantProperty(arrowColor);
+        this._dashColor = dashColor;
+        this._scene = scene;
+        this._totalLengthMeters = totalLengthMeters;
+        this._dashPixels = dashPixels;
+        this._arrowPixels = arrowPixels;
+        this._definitionChanged = new Cesium.Event();
+
+        // ── Materyal Önbellek Kaydı ──
+        // Cesium, aynı tipteki materyalleri önbellekte tutar.
+        // "ArrowEdgeMaterialHybrid" adıyla daha önce kayıt yapılmadıysa,
+        // GLSL shader kodunu ve varsayılan uniform değerlerini sisteme kaydediyoruz.
+        // Bu kayıt uygulama ömrü boyunca sadece BİR KEZ yapılır.
+        if (!(Cesium.Material as any)._materialCache._materials["ArrowEdgeMaterialHybrid"]) {
+            (Cesium.Material as any)._materialCache.addMaterial("ArrowEdgeMaterialHybrid", {
+                fabric: {
+                    type: "ArrowEdgeMaterialHybrid",
+                    // ── Uniform Varsayılan Değerleri ──
+                    // Bunlar shader'ın ilk yüklendiğinde kullanacağı başlangıç değerleri.
+                    // getValue() her karede bu değerleri gerçek hesaplamalarla EZECEK (override).
+                    uniforms: {
+                        arrowColor: Cesium.Color.WHITE,
+                        dashColor: Cesium.Color.fromBytes(239, 12, 249, 255),
+                        repeatCount: 1.0,          // Kaç kere desen tekrar edecek (CPU'dan gelecek)
+                        arrowRatio: 0.233,          // Bir hücrenin yüzde kaçı ok? (35/(115+35) ≈ 0.233)
+                        arrowPixelLength: 35.0,     // Ok şeklinin ekrandaki piksel genişliği
+                        minV: 0.40,                 // Çizginin (dash) alt dikey sınırı
+                        maxV: 0.60                  // Çizginin (dash) üst dikey sınırı
+                    },
+                    // ══════════════════════════════════════════════════════════════
+                    // ██  GLSL SHADER KODU (GPU'da çalışır)  ██
+                    // ══════════════════════════════════════════════════════════════
+                    //
+                    // Bu kod, Polyline'ın her pikselini boyamak için ekran kartında çalışır.
+                    // Cesium, çizginin her piksel parçası (fragment) için czm_getMaterial'i çağırır.
+                    //
+                    // VERİ AKIŞI:
+                    //   CPU (getValue) → uniform değişkenler → GPU (bu shader)
+                    //   Cesium vertex shader → v_polylineAngle → GPU (bu shader)
+                    //   WebGL → gl_FragCoord → GPU (bu shader)
+                    //   Cesium → materialInput.st → GPU (bu shader)
+                    source: `
+                        // ── CPU'dan Gelen Uniform Değişkenler ──
+                        uniform vec4 arrowColor;        // Ok şeklinin rengi
+                        uniform vec4 dashColor;         // Arka plan çizgisinin rengi
+                        uniform float repeatCount;      // Toplam desen tekrar sayısı (CPU her karede hesaplar)
+                        uniform float arrowRatio;       // Bir hücrenin ok'a ayrılan oranı (0.0-1.0 arası)
+                        uniform float arrowPixelLength; // Ok şeklinin ekrandaki piksel genişliği
+                        uniform float minV;             // Dash'in alt dikey sınırı (0.40 = çizginin %40'ından başla)
+                        uniform float maxV;             // Dash'in üst dikey sınırı (0.60 = çizginin %60'ında bitir)
+
+                        // ── Cesium Vertex Shader'dan Gelen Varying ──
+                        // v_polylineAngle: Çizginin o noktadaki ekrandaki açısı (radyan).
+                        // Cesium'un vertex shader'ı bunu otomatik hesaplar ve bize iletir.
+                        // Biz bunu, gl_FragCoord'daki piksel koordinatlarını çizginin
+                        // yönüne paralel hale getirmek (döndürmek) için kullanacağız.
+                        in float v_polylineAngle;
+
+                        // ── Yardımcı Fonksiyon: 2D Rotasyon Matrisi ──
+                        // Verilen açıya (radyan) göre 2x2 rotasyon matrisi üretir.
+                        // Bu matris, gl_FragCoord.xy'yi çizginin açısına göre döndürmek için kullanılır.
+                        // Döndürme sonrası pos.x, çizgi boyunca akan mesafeyi temsil eder.
+                        mat2 rotate(float rad) {
+                            float c = cos(rad);
+                            float s = sin(rad);
+                            return mat2(c, s, -s, c);
+                        }
+
+                        // ── Ok Şekli Maskesi ──
+                        // 2D (u, v) koordinatında ok şeklinin içinde miyiz dışında mıyız kontrol eder.
+                        //   u: Okun yatay ekseni (0.0 = kuyruk, 1.0 = uç)
+                        //   v: Okun dikey ekseni (0.0 = alt kenar, 0.5 = orta, 1.0 = üst kenar)
+                        // Dönüş: 1.0 = piksel okun içinde, 0.0 = piksel okun dışında
+                        //
+                        // Ok anatomisi (bodyFrac = 0.30 noktasında gövde biter, uç başlar):
+                        //   [===GÖVDE===|>>>>>>>>>UÇ>>>>>>>>>]
+                        //   0.0         0.30                 1.0
+                        //   Gövde: Sabit genişlikte dikdörtgen (bodyH = 0.35 oranında ince)
+                        //   Uç:    Sola doğru daralan üçgen (tam uçta genişlik sıfıra iner)
+                        float arrowMask(float u, float v) {
+                            const float bodyFrac = 0.30;    // Gövde, toplam okun ilk %30'u
+                            const float bodyH    = 0.35;    // Gövde, toplam genişliğin %35'i kadar ince
+                            float halfBody = bodyH * 0.5;   // Gövdeyi ortalamak için yarı genişlik
+                            float c = abs(v - 0.5);         // Merkez çizgisine olan dikey uzaklık
+
+                            // Gövde maskesi: u < bodyFrac VE merkeze yeterince yakınsa 1.0
+                            float inBodyU = 1.0 - step(bodyFrac, u);
+                            float inBodyV = 1.0 - step(halfBody, c);
+                            float alphaBody = inBodyU * inBodyV;
+
+                            // Uç maskesi: bodyFrac'tan sonra, uça doğru daralan üçgen
+                            // b: 0.0 (gövde sınırı) → 1.0 (tam uç) arası normalize edilmiş konum
+                            // halfHead: b arttıkça küçülür → üçgen daralması
+                            float b = clamp((u - bodyFrac) / max(1.0 - bodyFrac, 1e-6), 0.0, 1.0);
+                            float halfHead = 0.5 * (1.0 - b);
+                            float inHeadU  = step(bodyFrac, u);
+                            float inHeadV  = 1.0 - step(halfHead, c);
+                            float alphaHead = inHeadU * inHeadV;
+
+                            // Piksel gövdede VEYA uçta ise ok'un içinde demektir
+                            return clamp(max(alphaBody, alphaHead), 0.0, 1.0);
+                        }
+
+                        // ══════════════════════════════════════════════════════════════
+                        // ██  ANA SHADER FONKSİYONU  ██
+                        // ══════════════════════════════════════════════════════════════
+                        // Cesium, Polyline'ın her piksel parçası (fragment) için bu fonksiyonu çağırır.
+                        // materialInput içinde:
+                        //   .st.s → Çizgi boyunca ilerleme (0.0 = başlangıç, 1.0 = bitiş) [UV / Dünya-Uzayı]
+                        //   .st.t → Çizgi genişliği boyunca konum (0.0 = alt, 1.0 = üst)
+                        czm_material czm_getMaterial(czm_materialInput materialInput) {
+                            czm_material material = czm_getDefaultMaterial(materialInput);
+
+                            // s: Çizgi boyunca UV konumu (dünyaya çakılı, pan'de DEĞİŞMEZ)
+                            // v: Çizgi genişliği boyunca dikey konum
+                            float s = materialInput.st.s;
+                            float v = materialInput.st.t;
+
+                            // ══════════════════════════════════════════════════════
+                            // ADIM 1: UV TABANLI HÜCRE BELİRLEME (Dünya-Çakılı, Pan-Sabit)
+                            // ══════════════════════════════════════════════════════
+                            // s * repeatCount → UV'yi toplam hücre sayısına genişletir
+                            // fract()         → Mevcut hücre içindeki konumu verir (0.0 - 1.0)
+                            //
+                            // Örnek: repeatCount=10, s=0.35 → 0.35*10 = 3.5 → fract = 0.5
+                            //   Bu piksel 4. hücrenin tam ortasında demek.
+                            //
+                            // Hücre yapısı (arrowRatio=0.233 ile):
+                            //   [====== DASH (0.767) ======|>>> OK (0.233) >>>]
+                            //   0.0                        0.767              1.0
+                            //
+                            // cellPos >= (1.0 - arrowRatio) ise → ok bölgesindeyiz
+                            // cellPos < (1.0 - arrowRatio) ise  → dash bölgesindeyiz
+                            //
+                            // BU ADIM PAN-SABİTLİĞİ SAĞLAR:
+                            // Çünkü materialInput.st.s dünyaya çakılıdır. Haritayı sağa-sola
+                            // kaydırdığında s değeri DEĞİŞMEZ. Dolayısıyla hangi pikselin
+                            // ok bölgesinde olduğu kararı asla kaymaz.
+                            float cellPos = fract(s * repeatCount);
+                            float inArrowZone = step(1.0 - arrowRatio, cellPos);
+
+                            // ══════════════════════════════════════════════════════
+                            // ADIM 2: EKRAN-PİKSEL OK ŞEKLİ (Perspektif-Doğru)
+                            // ══════════════════════════════════════════════════════
+                            // gl_FragCoord.xy: Bu pikselin MONİTÖRDEKİ fiziksel konumu.
+                            //   Dünya ile ilgisi yoktur, tamamen ekrana bağlıdır.
+                            //   Bu yüzden perspektif bozulmalarından ETKİLENMEZ.
+                            //
+                            // rotate(v_polylineAngle): Çizgi ekranda çapraz duruyorsa,
+                            //   pikseli çizginin yönüne göre döndürür.
+                            //   Döndürme sonrası pos.x = çizgi boyunca akan mesafe (piksel).
+                            //
+                            // fract(pos.x / arrowPixelLength): Ok şeklinin piksel genişliğine
+                            //   bölerek, okun içindeki normalize konumu (u: 0→1) elde ederiz.
+                            //   Bu u değeri her zaman piksel cinsinden hesaplandığı için,
+                            //   kamera ne kadar eğilirse eğilsin ok şekli BOZULMAZ.
+                            //
+                            // BU ADIM PERSPEKTİF BÜTÜNLÜĞÜNÜ SAĞLAR:
+                            // Çünkü ok şekli ekran piksellerinde çizilir, UV sıkışmasından
+                            // tamamen bağımsızdır. Kamera 90° dik baksın ya da 15° eğik
+                            // baksın, ok şekli her zaman aynı oranlarla görünür.
+                            vec2 pos = rotate(v_polylineAngle) * gl_FragCoord.xy;
+                            float u = fract(pos.x / max(arrowPixelLength, 1.0));
+                            float mask = arrowMask(u, v);
+
+                            // ══════════════════════════════════════════════════════
+                            // ADIM 3: BİRLEŞTİRME — UV "nerede", Piksel "ne şekil"
+                            // ══════════════════════════════════════════════════════
+                            // inArrowZone (ADIM 1): "Bu piksel ok bölgesinde mi?" → 0 veya 1
+                            // mask        (ADIM 2): "Bu piksel ok şeklinin içinde mi?" → 0 veya 1
+                            //
+                            // İkisini çarpıyoruz:
+                            //   a = 1.0 → Piksel hem ok bölgesinde HEM de ok şeklinin içinde → OK RENGİ
+                            //   a = 0.0 → Piksel dash bölgesinde VEYA ok şeklinin dışında → DASH RENGİ
+                            float a = inArrowZone * mask;
+
+                            // ── Renk Karışımı ──
+                            // a=1 ise arrowColor, a=0 ise dashColor kullanılır
+                            vec4 outColor = mix(dashColor, arrowColor, a);
+
+                            // ── Dash Kalınlık Kırpması ──
+                            // Dash (arka plan çizgisi) çizginin tüm genişliğini değil,
+                            // sadece ortadaki minV-maxV aralığını kaplar (ince çizgi efekti).
+                            // Oklar (a > 0) bu kırpmadan muaftır ve tam genişlikte görünür.
+                            // Böylece oklar çizgiden daha geniş, çizgi ise ince görünür.
+                            float vClip = step(minV, v) * step(v, maxV);
+                            if (a <= 0.0) {
+                                outColor.a *= vClip;
+                            }
+
+                            // ── Kenar Yumuşatma ve Gamma Düzeltme ──
+                            outColor = czm_antialias(vec4(0.0), outColor, outColor, min(v, 1.0 - v));
+                            outColor = czm_gammaCorrect(outColor);
+
+                            // ── Sonucu Cesium'a İlet ──
+                            material.diffuse = outColor.rgb;
+                            material.alpha   = outColor.a;
+                            return material;
+                        }
+                    `
+                },
+                translucent: () => true
+            });
+        }
+    }
+
+    // ── Cesium MaterialProperty Arayüz Implementasyonu ──
+
+    // false döndürüyoruz çünkü getValue() her karede farklı repeatCount hesaplar.
+    // Cesium bu sayede her frame'de getValue()'yu çağırıp güncel değerleri GPU'ya aktarır.
+    get isConstant(): boolean { return false; }
+
+    // Cesium'un materyal değişikliklerini dinlediği olay nesnesi
+    get definitionChanged(): Cesium.Event { return this._definitionChanged; }
+
+    // Cesium sorar: "Bu materyalin shader kodu hangisi?"
+    // Bu string ile önbellekteki GLSL kodunu bulup kullanır.
+    getType(_time: Cesium.JulianDate): string { return "ArrowEdgeMaterialHybrid"; }
+
+    // ══════════════════════════════════════════════════════════════
+    // ██  CPU TARAFI: Her karede uniform değerleri hesapla  ██
+    // ══════════════════════════════════════════════════════════════
+    // Cesium, kamerayı her hareket ettirdiğinde bu metodu çağırır.
+    // Burada kamera bilgilerine bakarak GPU'ya gönderilecek
+    // repeatCount, arrowRatio ve arrowPixelLength değerlerini hesaplıyoruz.
+    //
+    // DİNAMİK ZOOM ÖLÇEKLEMEYİ BU METOT SAĞLAR (Gereksinim 4):
+    // Zoom in yapıldığında mpp (metre/piksel) küçülür → patternMeters küçülür
+    //   → repeatCount büyür → daha çok ok görünür
+    // Zoom out yapıldığında mpp büyür → patternMeters büyür
+    //   → repeatCount küçülür → daha az ok görünür
+    getValue(time: Cesium.JulianDate, result?: any): any {
+        if (!result) result = {};
+
+        // Renkleri GPU'ya aktar
+        result.arrowColor = this._arrowColor.getValue(time);
+        result.dashColor = this._dashColor.getValue(time);
+
+        // ─── 1. Kamera Yüksekliği (Altitude) ───
+        // Kameranın deniz seviyesinden yüksekliğini alıyoruz.
+        // PAN-SABİTLİĞİ İÇİN KRİTİK: Yükseklik (altitude), haritayı sağa-sola
+        // kaydırdığında (pan) DEĞİŞMEZ. viewDistance veya BoundingSphere'e olan
+        // mesafe kullanılsaydı, pan sırasında mesafe değişir → repeatCount değişir
+        // → oklar titreyip kayardı. Altitude kullanarak bunu engelliyoruz.
+        let alt = 100000.0; // Fallback: kamera bilgisi alınamazsa 100km varsay
+        if (this._scene && this._scene.camera) {
+            const carto = this._scene.globe.ellipsoid.cartesianToCartographic(
+                this._scene.camera.positionWC
+            );
+            if (carto) {
+                alt = Math.max(carto.height, 10.0); // Yere çakılmayı engelle (min 10m)
+            }
+        }
+
+        // ─── 2. Pitch (Eğim) Düzeltmesi ───
+        // Sadece altitude kullanmak, kamera eğildiğinde (tilt) sorun yaratır.
+        // Düz bakışta (pitch=-90°): Kamera tam aşağı bakıyor → alt doğrudan kullanılabilir
+        // Eğik bakışta (pitch=-45°): Kamera yatay bakıyor → gerçek bakış mesafesi alt'dan büyük
+        //
+        // Formül: effectiveDistance = altitude / sin(|pitch|)
+        //   pitch = -90° → sin(90°) = 1.0 → effectiveDistance = altitude (düzeltme yok)
+        //   pitch = -45° → sin(45°) = 0.707 → effectiveDistance = altitude * 1.41 (daha uzak)
+        //   pitch = -10° → sin(10°) = 0.174 → effectiveDistance = altitude * 5.75 (çok uzak)
+        //
+        // tiltFactor min 0.1 ile sınırlanıyor: Ufka neredeyse paralel bakışta
+        // (pitch ≈ 0°) effectiveDistance sonsuza gitmesini engeller.
+        const pitch = this._scene.camera.pitch;
+        const sinPitch = Math.abs(Math.sin(pitch));
+        const tiltFactor = Math.max(sinPitch, 0.1);
+        const effectiveDistance = alt / tiltFactor;
+
+        // ─── 3. Piksel Başına Metre (MPP) Hesabı ───
+        // effectiveDistance mesafesinden bakıldığında, ekrandaki 1 pikselin
+        // gerçek dünyada kaç metreye karşılık geldiğini hesaplıyoruz.
+        //
+        // Cesium'un getPixelDimensions fonksiyonu, kameranın frustum'una
+        // (görüş hacmi) ve çözünürlüğe bakarak bunu otomatik hesaplar.
+        //
+        // Zoom in → mpp küçülür (1 piksel = az metre)
+        // Zoom out → mpp büyür (1 piksel = çok metre)
+        const pixelSize = this._scene.camera.frustum.getPixelDimensions(
+            this._scene.drawingBufferWidth,
+            this._scene.drawingBufferHeight,
+            effectiveDistance,
+            window.devicePixelRatio,
+            new Cesium.Cartesian2()
+        );
+        const mpp = pixelSize.x; // Yatay piksel başına metre
+
+        // ─── 4. repeatCount Hesabı (DİNAMİK ZOOM ÖLÇEKLEMENİN KALBİ) ───
+        // patternPixels: Bir desen hücresinin toplam piksel uzunluğu (örn: 115 + 35 = 150px)
+        // patternMeters: O an bu 150 pikselin dünyada kaç metreye denk geldiği
+        // repeatCount:   Rotanın toplam metre uzunluğunu, bir desenin metre uzunluğuna bölüyoruz
+        //
+        // Örnek (50km yükseklik, mpp ≈ 30 m/px):
+        //   patternMeters = 150 * 30 = 4500 m (bir desen 4.5 km)
+        //   totalLength = 100 km
+        //   repeatCount = 100000 / 4500 ≈ 22 → Çizgi boyunca 22 ok
+        //
+        // Örnek (10km yükseklik, mpp ≈ 6 m/px):
+        //   patternMeters = 150 * 6 = 900 m (bir desen 0.9 km)
+        //   repeatCount = 100000 / 900 ≈ 111 → Çizgi boyunca 111 ok
+        //
+        // Math.round(): Yarım ok çıkmasını engellemek için tam sayıya yuvarla
+        // Math.max(_, 1.0): En az 1 desen olsun (sıfıra bölünme güvenliği)
+        const patternPixels = this._dashPixels + this._arrowPixels;
+        const patternMeters = patternPixels * mpp;
+        result.repeatCount = Math.max(Math.round(this._totalLengthMeters / patternMeters), 1.0);
+
+        // ─── 5. Ok Oranı ve Piksel Uzunluğu (GPU'ya Gönder) ───
+        // arrowRatio: Bir hücrenin yüzde kaçı ok'a ayrılmış? Shader bunu
+        //   "cellPos >= (1.0 - arrowRatio)" koşulunda kullanır.
+        //   Örn: 35/150 = 0.233 → Hücrenin son %23.3'ü ok bölgesi
+        //
+        // arrowPixelLength: Ok şeklinin ekrandaki piksel genişliği.
+        //   devicePixelRatio ile çarpılır (Retina/HiDPI ekran desteği).
+        //   Shader bunu arrowMask'ın u koordinatını hesaplamak için kullanır.
+        result.arrowRatio = this._arrowPixels / patternPixels;
+        result.arrowPixelLength = this._arrowPixels * (window.devicePixelRatio || 1.0);
+
+        return result;
+    }
+
+    equals(other: Cesium.MaterialProperty): boolean {
+        return this === other;
+    }
+}
+
+/*
+
+export class Cember_Material implements Cesium.MaterialProperty {
+    private _arrowCount: Property;
+    private _borderWidth: Property;
+    private _arrowColor: Property;
+    private _borderColor: Property;
+    private _circleColor: CallbackProperty;
+    private _cemberSaydamlik: Property;
+    
+    private _definitionChanged: Cesium.Event;
+
+    constructor(options: {
+        arrowColor: Color,
+        borderWidth: number,
+        arrowCount: number,
+        borderColor: Color,
+        circleColor: CallbackProperty,
+        cemberSaydamlik: number,
+    }
+    ) {
+        this._arrowColor = new Cesium.ConstantProperty(options.arrowColor);
+        this._arrowColor = new Cesium.ConstantProperty(options.arrowColor);
+        this._borderWidth = new Cesium.ConstantProperty(2.0);
+        this._arrowCount = new Cesium.ConstantProperty(options.arrowCount);
+        this._borderColor = new Cesium.ConstantProperty(options.borderColor);
+        this._circleColor = new Cesium.ConstantProperty(options.circleColor);;
+        this._cemberSaydamlik = new Cesium.ConstantProperty(options.cemberSaydamlik);
+        
+
+        if (!(Cesium.Material as any)._materialCache._materials["Cember_Material"]) {
+            (Cesium.Material as any)._materialCache.addMaterial("Cember_Material", {
+                fabric: {
+                    type: "Cember_Material",
+                    uniforms: {
+                        arrowColor: Cesium.Color.WHITE, 
+                        borderWidth: 2.0,
+                        arrowCount: 10,
+                        borderColor: Cesium.Color.WHITE,
+                        circleColor: Cesium.Color.fromBytes(239, 12, 249, 255), // Arka plan zemin rengi (Yeşil veya Pembe)
+                        cemberSaydamlik: 0.5,
+                    },
+                    source:
+                },
+                translucent: () => true
+            });
+        }
+    }
+
+...
+    getType(_time: Cesium.JulianDate): string { return "Cember_Material"; }
+
+    getValue(time: Cesium.JulianDate, result?: any): any {
+        if (!result) result = {};
+        result.arrowColor = this._arrowColor.getValue(time);
+        result.borderWidth = this._borderWidth.getValue(time);
+        result.arrowCount = this._arrowCount.getValue(time);
+        result.borderColor = this._borderColor.getValue(time);
+        result.circleColor = this._circleColor.getValue(time);
+        result.cemberSaydamlik = this._cemberSaydamlik.getValue(time);
+        
+        return result;
+    }
+
+...
+}
+*/
+
+export class AI_ChevronArrowEdgeMaterialProperty_kesik_serit_mesafeli implements Cesium.MaterialProperty {
+    private _arrowColor: Cesium.Property;
+    private _dashColor: Cesium.Property;
+    private _definitionChanged: Cesium.Event;
+
+    constructor(
+        arrowColor: Cesium.Color,
+        dashColor: Cesium.CallbackProperty
+    ) {
+        this._arrowColor = new Cesium.ConstantProperty(arrowColor);
+        this._dashColor = dashColor;
+        this._definitionChanged = new Cesium.Event();
+
+        if (!(Cesium.Material as any)._materialCache._materials["AI_ChevronArrowEdgeMaterialProperty_kesik_serit_mesafeli"]) {
+            (Cesium.Material as any)._materialCache.addMaterial("AI_ChevronArrowEdgeMaterialProperty_kesik_serit_mesafeli", {
+                fabric: {
+                    type: "AI_ChevronArrowEdgeMaterialProperty_kesik_serit_mesafeli",
+                    uniforms: {
+                        arrowColor: Cesium.Color.WHITE,
+                        dashColor: Cesium.Color.fromBytes(239, 12, 249, 255),
+                        dashLength: 100.0,
+                        arrowLength: 25.0,
+                        minV: 0.30, 
+                        maxV: 0.70,
+                        middleDashColor: Cesium.Color.BLACK,
+                        dashCount: 4.0 // 3 ise 7 parçaya (3 çizgi 4 boşluk) böler.
+                    },
+                    source: `
+                        uniform vec4 arrowColor;
+                        uniform vec4 dashColor;
+                        uniform vec4 middleDashColor;
+                        uniform float dashLength;
+                        uniform float arrowLength;
+                        uniform float minV;
+                        uniform float maxV;
+                        uniform float dashCount;
+                        in float v_polylineAngle;
+
+                        mat2 rotate(float rad) {
+                            float c = cos(rad);
+                            float s = sin(rad);
+                            return mat2(c, s, -s, c);
+                        }
+
+                        float modp(float x, float len) {
+                            float m = mod(x, len);
+                            return m < 0.0 ? m + len : m;
+                        }
+
+                        czm_material czm_getMaterial(czm_materialInput materialInput) {
+                            czm_material material = czm_getDefaultMaterial(materialInput);
+                            vec2 st = materialInput.st;
+
+                            vec2 pos = rotate(v_polylineAngle) * gl_FragCoord.xy;
+                            float pixelDashLength  = max(dashLength  * czm_pixelRatio, 1.0);
+                            float pixelArrowLength = max(arrowLength * czm_pixelRatio, 1.0);
+                            float pixelSegmentLength = pixelDashLength + pixelArrowLength;
+
+                            float xInSeg = modp(pos.x, pixelSegmentLength);
+
+                            float fwX = max(fwidth(pos.x), 1e-5);
+                            float blurX = fwX * 0.5;
+                            float inArrow = smoothstep(pixelDashLength - blurX, pixelDashLength + blurX, xInSeg) * (1.0 - smoothstep(pixelSegmentLength - blurX, pixelSegmentLength + blurX, xInSeg));
+
+                            float u = clamp((xInSeg - pixelDashLength) / pixelArrowLength, 0.0, 1.0);
+                            float v = st.t;
+                            
+                            // Merkezden uzaklaştıkça artan katlama değeri (V şekli için)
+                            float foldV = abs(v - 0.5) * 2.0;
+                            
+                            float fwU = max(fwX / pixelArrowLength, 1e-5); 
+                            float fwV = max(fwidth(v) * 2.0, 1e-5); 
+                            
+                            float blurU = fwU * 0.5; 
+                            float blurV = fwV * 0.5;
+
+                            // ==========================================
+                            // 1D ANALİTİK 3'LÜ CHEVRON MANTIĞI
+                            // ==========================================
+                            // Tamamen eski analitik mantığın 3 kez kaydırılmış halidir.
+                            // U aralığını (0.0 -> 1.0) 3 ok alacak şekilde böldük.
+                            float slope = 0.25;      // Geriye yatıklık açısı
+                            float width = 0.20;      // Her okun dış kalınlığı
+                            float edgeWidth = 0.05;  // Siyah kenarlık kalınlığı
+
+                            // Her bir okun başlangıç ofsetleri
+                            float offset1 = 0.25;
+                            float offset2 = 0.50;
+                            float offset3 = 0.75;
+
+                            // --- 1. CHEVRON ---
+                            float lOut1 = offset1 - slope * foldV;
+                            float rOut1 = offset1 + width - slope * foldV;
+                            float lInn1 = offset1 + edgeWidth - slope * foldV;
+                            float rInn1 = offset1 + width - edgeWidth - slope * foldV;
+
+                            // --- 2. CHEVRON ---
+                            float lOut2 = offset2 - slope * foldV;
+                            float rOut2 = offset2 + width - slope * foldV;
+                            float lInn2 = offset2 + edgeWidth - slope * foldV;
+                            float rInn2 = offset2 + width - edgeWidth - slope * foldV;
+
+                            // --- 3. CHEVRON ---
+                            float lOut3 = offset3 - slope * foldV;
+                            float rOut3 = offset3 + width - slope * foldV;
+                            float lInn3 = offset3 + edgeWidth - slope * foldV;
+                            float rInn3 = offset3 + width - edgeWidth - slope * foldV;
+
+                            // Maskeleri Pürüzsüzleştir ve Birleştir
+                            float outer1 = smoothstep(lOut1 - blurU, lOut1 + blurU, u) * (1.0 - smoothstep(rOut1 - blurU, rOut1 + blurU, u));
+                            float outer2 = smoothstep(lOut2 - blurU, lOut2 + blurU, u) * (1.0 - smoothstep(rOut2 - blurU, rOut2 + blurU, u));
+                            float outer3 = smoothstep(lOut3 - blurU, lOut3 + blurU, u) * (1.0 - smoothstep(rOut3 - blurU, rOut3 + blurU, u));
+                            float outerU = max(max(outer1, outer2), outer3); // 3'ünün dış birleşimi
+
+                            float inner1 = smoothstep(lInn1 - blurU, lInn1 + blurU, u) * (1.0 - smoothstep(rInn1 - blurU, rInn1 + blurU, u));
+                            float inner2 = smoothstep(lInn2 - blurU, lInn2 + blurU, u) * (1.0 - smoothstep(rInn2 - blurU, rInn2 + blurU, u));
+                            float inner3 = smoothstep(lInn3 - blurU, lInn3 + blurU, u) * (1.0 - smoothstep(rInn3 - blurU, rInn3 + blurU, u));
+                            float innerU = max(max(inner1, inner2), inner3); // 3'ünün iç birleşimi
+                            
+                            // Ucun çok sivri olmasını engelleme (Orijinal kodundaki detay)
+                            float innerCapV = 1.0 - smoothstep(0.7 - blurV, 0.7 + blurV, foldV);
+
+                            float alphaOuter = outerU * inArrow;
+                            float alphaInner = innerU * innerCapV * inArrow;
+
+                            vec4 dashCol = dashColor;
+                            vec4 arrowCol = arrowColor;
+                            vec4 blackCol = vec4(0.0, 0.0, 0.0, 1.0); // Taşmaya izin veren tam opaklık
+                            
+                            // --- ARKA PLAN (Kesikli Şerit) ---
+                            float blurZemin = max(fwidth(v), 1e-5) * 0.5;
+                            float midV = (minV + maxV) * 0.5;
+                            float stripeThickness = (maxV - minV) * 0.4;
+                            float bStart = midV - (stripeThickness * 0.5);
+                            float bEnd = midV + (stripeThickness * 0.5);
+
+                            float verticalStripeMask = smoothstep(bStart - blurZemin, bStart + blurZemin, v) - smoothstep(bEnd - blurZemin, bEnd + blurZemin, v);
+
+                            // ==========================================
+                            // 2N+1 MATEMATİK YÖNTEMİ
+                            // ==========================================
+                            // YENİ GÖRSEL BOŞLUK HESABI:
+                            // Yeni 3'lü tasarımda ilk ok u=0.25'te başlar. Bu yüzden görsel 
+                            // boşluğa 0.25 * pixelArrowLength kadar ek yapıyoruz.
+                            float visualGap = pixelDashLength + 0.25 * pixelArrowLength;
+
+                            float dCount = max(floor(dashCount), 1.0); 
+                            float totalParts = 2.0 * dCount + 1.0;
+                            
+                            float unitLength = visualGap / totalParts;
+
+                            float x_shifted = xInSeg - 0.5 * unitLength;
+                            float m = modp(x_shifted, 2.0 * unitLength);
+                            float distToDashEdge = 0.5 * unitLength - abs(m - unitLength);
+                            
+                            // Maske çizgileri çizer.
+                            float horizontalStripeMask = smoothstep(-blurX, blurX, distToDashEdge);
+                            float finalStripeFactor = verticalStripeMask * horizontalStripeMask;
+
+                            vec4 baseColor = mix(dashCol, middleDashColor, finalStripeFactor);
+                            
+                            float edgeAlpha = smoothstep(minV - blurZemin, minV + blurZemin, v) * (1.0 - smoothstep(maxV - blurZemin, maxV + blurZemin, v));
+                            baseColor.a *= edgeAlpha;
+
+                            // --- KATMANLI RENK BİRLEŞTİRME --
+                            vec4 outColor = baseColor;
+                            // Outer ve Inner değerleri üzerinden renkleri giydiriyoruz
+                            outColor = mix(outColor, blackCol, alphaOuter); 
+                            outColor = mix(outColor, arrowCol, alphaInner); 
+
+                            outColor = czm_gammaCorrect(outColor);
+
+                            material.diffuse = outColor.rgb;
+                            material.alpha   = outColor.a;
+                            return material;
+                        }
+                    `
+                },
+                translucent: () => true
+            });
+        }
+    }
+
+    get isConstant(): boolean {
+        const ac = (this._arrowColor as any)?.isConstant ?? true;
+        const dc = (this._dashColor as any)?.isConstant ?? true;
+        return ac && dc;
+    }
+
+    get definitionChanged(): Cesium.Event { return this._definitionChanged; }
+    getType(_time: Cesium.JulianDate): string { return "AI_ChevronArrowEdgeMaterialProperty_kesik_serit_mesafeli"; }
+
+    getValue(time: Cesium.JulianDate, result?: any): any {
+        if (!result) result = {};
+        result.arrowColor = this._arrowColor.getValue(time);
+        result.dashColor = this._dashColor.getValue(time);
+        return result;
+    }
+
+    equals(other: Cesium.MaterialProperty): boolean {
+        return (
+            other instanceof AI_ChevronArrowEdgeMaterialProperty_kesik_serit_mesafeli &&
+            (other as any)._arrowColor?.equals?.(this._arrowColor) === true &&
+            (other as any)._dashColor?.equals?.(this._dashColor) === true
+        );
     }
 }
