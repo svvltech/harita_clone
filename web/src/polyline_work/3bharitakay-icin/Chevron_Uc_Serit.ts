@@ -1,3 +1,4 @@
+import * as Cesium from "cesium";
 export class ChevronArrowEdgeMaterialProperty_sandwichLine implements Cesium.MaterialProperty {
     private _arrowColor: Cesium.Property;
     private _dashColor: Cesium.Property;
